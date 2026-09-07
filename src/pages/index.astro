@@ -420,39 +420,166 @@ const profile = {
 
     <!-- ====== SCRIPTS ====== -->
     <script client:load>
-      // Import theme switcher
-      import { initThemeSwitcher, initChaosEasterEgg } from '../scripts/theme-switcher.ts';
-      // Import real-time GitHub data client
-      import { initGitHubData } from '../lib/github-data-client.ts';
+      (function() {
+        // =========================================
+        // Theme Switcher Engine
+        // =========================================
+        var THEMES = ['mirror', 'version', 'loop'];
+        var AUTO_SWITCH_INTERVAL = 15000;
+        var MANUAL_PAUSE_DURATION = 30000;
+        var currentIndex = 0;
+        var autoTimer = null;
+        var idleTimer = null;
+        var isIdle = true;
 
-      // Initialize
-      document.addEventListener('DOMContentLoaded', () => {
-        initThemeSwitcher();
+        function setInitialState() {
+          var stored = localStorage.getItem('fight1-theme');
+          if (stored && THEMES.indexOf(stored) !== -1) {
+            currentIndex = THEMES.indexOf(stored);
+            return;
+          }
+          var now = new Date();
+          var hour = now.getHours();
+          var day = now.getDay();
+          if (day === 0 || day === 6) currentIndex = 2;
+          else if (hour >= 20 || hour < 6) currentIndex = 0;
+          else currentIndex = 1;
+        }
+
+        function applyTheme(theme) {
+          if (THEMES.indexOf(theme) === -1) return;
+          document.documentElement.setAttribute('data-theme', theme);
+          localStorage.setItem('fight1-theme', theme);
+          currentIndex = THEMES.indexOf(theme);
+
+          document.querySelectorAll('.theme-dot').forEach(function(dot) {
+            dot.classList.toggle('active', dot.dataset.theme === theme);
+          });
+
+          window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: theme } }));
+
+          setTimeout(function() {
+            document.documentElement.classList.remove('theme-transitioning');
+          }, 700);
+        }
+
+        function startAutoSwitch() {
+          if (autoTimer) clearInterval(autoTimer);
+          autoTimer = setInterval(function() {
+            if (isIdle) {
+              currentIndex = (currentIndex + 1) % THEMES.length;
+              applyTheme(THEMES[currentIndex]);
+            }
+          }, AUTO_SWITCH_INTERVAL);
+        }
+
+        function stopAutoSwitch() {
+          if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        }
+
+        function pauseAutoSwitch() {
+          stopAutoSwitch();
+          setTimeout(startAutoSwitch, MANUAL_PAUSE_DURATION);
+        }
+
+        function setupManualControls() {
+          document.querySelectorAll('.theme-dot').forEach(function(dot) {
+            dot.addEventListener('click', function() {
+              var theme = dot.dataset.theme;
+              if (!theme) return;
+              applyTheme(theme);
+              pauseAutoSwitch();
+              dot.style.transform = 'scale(0.8)';
+              setTimeout(function() { dot.style.transform = ''; }, 150);
+            });
+          });
+
+          document.addEventListener('keydown', function(e) {
+            if (e.key === 't' || e.key === 'T') {
+              currentIndex = (currentIndex + 1) % THEMES.length;
+              applyTheme(THEMES[currentIndex]);
+              pauseAutoSwitch();
+            }
+          });
+        }
+
+        function setupIdleDetection() {
+          var events = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'];
+          events.forEach(function(event) {
+            document.addEventListener(event, function() {
+              isIdle = false;
+              if (idleTimer) clearTimeout(idleTimer);
+              idleTimer = setTimeout(function() { isIdle = true; }, 8000);
+            }, { passive: true });
+          });
+        }
+
+        function initChaosEasterEgg() {
+          var clickCount = 0;
+          var chaosTimer = null;
+          document.addEventListener('click', function() {
+            clickCount++;
+            if (chaosTimer) clearTimeout(chaosTimer);
+            chaosTimer = setTimeout(function() { clickCount = 0; }, 2000);
+            if (clickCount >= 8) {
+              clickCount = 0;
+              var original = document.documentElement.getAttribute('data-theme') || 'mirror';
+              var flashCount = 0;
+              var interval = setInterval(function() {
+                var randomTheme = THEMES[Math.floor(Math.random() * THEMES.length)];
+                document.documentElement.setAttribute('data-theme', randomTheme);
+                flashCount++;
+                if (flashCount >= 10) {
+                  clearInterval(interval);
+                  applyTheme(original);
+                  var msg = document.createElement('div');
+                  msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;font-family:var(--font-mono);font-size:1.5rem;color:var(--accent-1);text-align:center;pointer-events:none;animation:fadeInUp 0.3s ease both;';
+                  msg.textContent = '⚠ CHAOS MODE — All systems nominal';
+                  document.body.appendChild(msg);
+                  setTimeout(function() { msg.style.opacity = '0'; msg.style.transition = 'opacity 0.5s'; setTimeout(function() { msg.remove(); }, 500); }, 2000);
+                }
+              }, 80);
+            }
+          });
+        }
+
+        function updateThemeLabel() {
+          var theme = document.documentElement.getAttribute('data-theme') || 'mirror';
+          var labels = { mirror: 'Mirror Mode', version: 'Version Mode', loop: 'Loop Mode' };
+          var hints = { mirror: '⚡ Neon active', version: '> System ready', loop: '∞ Flowing' };
+          document.querySelectorAll('.theme-label-text').forEach(function(el) { el.textContent = '◈ ' + labels[theme]; });
+          document.querySelectorAll('.theme-label-hint').forEach(function(el) { el.textContent = hints[theme]; });
+          document.querySelectorAll('.footer-theme-label').forEach(function(el) { el.textContent = '● ' + labels[theme]; });
+        }
+
+        // Init theme switcher
+        setInitialState();
+        applyTheme(THEMES[currentIndex], false);
+        startAutoSwitch();
+        setupManualControls();
+        setupIdleDetection();
         initChaosEasterEgg();
-        initGitHubData();
+        updateThemeLabel();
 
-        // Animate skill bars on scroll
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach((entry) => {
+        // =========================================
+        // Scroll Animations
+        // =========================================
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
             if (entry.isIntersecting) {
-              const bars = entry.target.querySelectorAll('[data-width]');
-              bars.forEach((bar, i) => {
-                setTimeout(() => {
-                  bar.style.width = bar.dataset.width + '%';
-                }, i * 80);
+              var bars = entry.target.querySelectorAll('[data-width]');
+              bars.forEach(function(bar, i) {
+                setTimeout(function() { bar.style.width = bar.dataset.width + '%'; }, i * 80);
               });
               observer.unobserve(entry.target);
             }
           });
         }, { threshold: 0.2 });
 
-        document.querySelectorAll('.skills-grid').forEach((grid) => {
-          observer.observe(grid);
-        });
+        document.querySelectorAll('.skills-grid').forEach(function(grid) { observer.observe(grid); });
 
-        // Section fade-in animation
-        const fadeObserver = new IntersectionObserver((entries) => {
-          entries.forEach((entry) => {
+        var fadeObserver = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
             if (entry.isIntersecting) {
               entry.target.style.animation = 'fadeInUp 0.6s var(--ease-spring) both';
               fadeObserver.unobserve(entry.target);
@@ -460,50 +587,24 @@ const profile = {
           });
         }, { threshold: 0.1 });
 
-        document.querySelectorAll('.section-fade-in').forEach((el) => {
+        document.querySelectorAll('.section-fade-in').forEach(function(el) {
           el.style.opacity = '0';
           fadeObserver.observe(el);
         });
 
-        // Update theme label
-        const updateThemeLabel = () => {
-          const theme = document.documentElement.getAttribute('data-theme') || 'mirror';
-          const labels = {
-            mirror: 'Mirror Mode',
-            version: 'Version Mode',
-            loop: 'Loop Mode',
-          };
-          const hints = {
-            mirror: '⚡ Neon active',
-            version: '> System ready',
-            loop: '∞ Flowing',
-          };
-
-          document.querySelectorAll('.theme-label-text').forEach((el) => {
-            el.textContent = `◈ ${labels[theme]}`;
-          });
-          document.querySelectorAll('.theme-label-hint').forEach((el) => {
-            el.textContent = hints[theme];
-          });
-
-          // Update footer theme label
-          document.querySelectorAll('.footer-theme-label').forEach((el) => {
-            el.textContent = `● ${labels[theme]}`;
-          });
-        };
-
-        updateThemeLabel();
         window.addEventListener('themeChanged', updateThemeLabel);
 
-        // Cursor glow follows mouse
-        const glow = document.querySelector('.cursor-glow');
+        // =========================================
+        // Cursor Glow
+        // =========================================
+        var glow = document.querySelector('.cursor-glow');
         if (glow && window.matchMedia('(pointer: fine)').matches) {
-          document.addEventListener('mousemove', (e) => {
+          document.addEventListener('mousemove', function(e) {
             glow.style.left = e.clientX + 'px';
             glow.style.top = e.clientY + 'px';
           });
         }
-      });
+      })();
     </script>
   </body>
 </html>

@@ -2,111 +2,96 @@
 // =========================================
 // ParticleBackground.astro
 // Canvas-based particle system
-// Particles change color based on current theme
-// Uses Astro client:load directive for hydration
 // =========================================
 ---
 
-<head>
-  <style>
-    .particle-canvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-  </style>
-</head>
+<style>
+.particle-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+</style>
 
 <canvas class="particle-canvas" id="particleCanvas" aria-hidden="true"></canvas>
 
 <script client:load>
-  const canvas = document.getElementById('particleCanvas') as HTMLCanvasElement;
+(function() {
+  var canvas = document.getElementById('particleCanvas');
   if (!canvas) return;
-
-  const ctx = canvas.getContext('2d');
+  var ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  interface Particle {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    size: number;
-    opacity: number;
-  }
-
-  const PARTICLE_COUNT = 80;
-  const CONNECTION_DISTANCE = 120;
-  const MOUSE_RADIUS = 150;
-
-  let particles: Particle[] = [];
-  let animationId: number;
-  let mouseX = -1000;
-  let mouseY = -1000;
-  let currentTheme = 'mirror';
-  let dpr = window.devicePixelRatio || 1;
+  var PARTICLE_COUNT = 80;
+  var CONNECTION_DISTANCE = 120;
+  var MOUSE_RADIUS = 150;
+  var particles = [];
+  var mouseX = -1000;
+  var mouseY = -1000;
+  var currentTheme = 'mirror';
+  var dpr = window.devicePixelRatio || 1;
 
   function resize() {
-    const parent = canvas.parentElement;
-    const w = parent?.clientWidth || window.innerWidth;
-    const h = parent?.clientHeight || window.innerHeight;
+    var parent = canvas.parentElement;
+    var w = parent ? parent.clientWidth : window.innerWidth;
+    var h = parent ? parent.clientHeight : window.innerHeight;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   function initParticles() {
-    const w = canvas.width / dpr;
-    const h = canvas.height / dpr;
-    particles = Array.from({ length: PARTICLE_COUNT }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
-      size: Math.random() * 2 + 0.5,
-      opacity: Math.random() * 0.5 + 0.2,
-    }));
+    var w = canvas.width / dpr;
+    var h = canvas.height / dpr;
+    particles = [];
+    for (var i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 2 + 0.5,
+        opacity: Math.random() * 0.5 + 0.2,
+      });
+    }
   }
 
-  function getThemeColor(theme: string, alpha: number): string {
-    const colors: Record<string, string> = {
-      mirror: `rgba(0, 243, 255, ${alpha})`,
-      version: `rgba(0, 255, 136, ${alpha})`,
-      loop: `rgba(180, 120, 255, ${alpha})`,
+  function getThemeColor(theme, alpha) {
+    var colors = {
+      mirror: 'rgba(0, 243, 255, ' + alpha + ')',
+      version: 'rgba(0, 255, 136, ' + alpha + ')',
+      loop: 'rgba(180, 120, 255, ' + alpha + ')',
     };
     return colors[theme] || colors.mirror;
   }
 
-  function getThemeColorSecondary(theme: string, alpha: number): string {
-    const colors: Record<string, string> = {
-      mirror: `rgba(255, 0, 255, ${alpha})`,
-      version: `rgba(255, 170, 0, ${alpha})`,
-      loop: `rgba(120, 200, 255, ${alpha})`,
+  function getThemeColorSecondary(theme, alpha) {
+    var colors = {
+      mirror: 'rgba(255, 0, 255, ' + alpha + ')',
+      version: 'rgba(255, 170, 0, ' + alpha + ')',
+      loop: 'rgba(120, 200, 255, ' + alpha + ')',
     };
     return colors[theme] || colors.mirror;
   }
 
   function animate() {
-    const w = canvas.width / dpr;
-    const h = canvas.height / dpr;
-
+    var w = canvas.width / dpr;
+    var h = canvas.height / dpr;
     ctx.clearRect(0, 0, w, h);
 
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
-
-      // Mouse interaction
-      const dx = mouseX - p.x;
-      const dy = mouseY - p.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      var dx = mouseX - p.x;
+      var dy = mouseY - p.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < MOUSE_RADIUS) {
-        const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.02;
+        var force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.02;
         p.vx -= dx * force;
         p.vy -= dy * force;
       }
@@ -128,11 +113,11 @@
         : getThemeColorSecondary(currentTheme, p.opacity * 0.7);
       ctx.fill();
 
-      for (let j = i + 1; j < particles.length; j++) {
-        const p2 = particles[j];
-        const d = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
+      for (var j = i + 1; j < particles.length; j++) {
+        var p2 = particles[j];
+        var d = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
         if (d < CONNECTION_DISTANCE) {
-          const alpha = (1 - d / CONNECTION_DISTANCE) * 0.15;
+          var alpha = (1 - d / CONNECTION_DISTANCE) * 0.15;
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(p2.x, p2.y);
@@ -142,27 +127,25 @@
         }
       }
     }
-
-    animationId = requestAnimationFrame(animate);
+    requestAnimationFrame(animate);
   }
 
-  // Event listeners
-  document.addEventListener('mousemove', (e) => {
+  document.addEventListener('mousemove', function(e) {
     mouseX = e.clientX;
     mouseY = e.clientY;
   });
 
-  window.addEventListener('themeChanged', () => {
+  window.addEventListener('themeChanged', function() {
     currentTheme = document.documentElement.getAttribute('data-theme') || 'mirror';
   });
 
-  window.addEventListener('resize', () => {
+  window.addEventListener('resize', function() {
     resize();
   });
 
-  // Init
   resize();
   initParticles();
   currentTheme = document.documentElement.getAttribute('data-theme') || 'mirror';
   animate();
+})();
 </script>
