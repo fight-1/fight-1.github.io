@@ -1,0 +1,81 @@
+name: GitHub Metrics Dashboard
+
+on:
+  schedule: [{ cron: '0 0 * * 0' }]  # Weekly on Sunday midnight UTC
+  workflow_dispatch:                 # Manual trigger
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  github-metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ---------- Primary Metrics ----------
+      - name: Generate Metrics Dashboard
+        uses: lowlighter/metrics@latest
+        with:
+          token: ${{ secrets.METRICS_TOKEN }}
+          base: ''
+          user: fight-1
+          template: card
+          config:
+            base: hack
+            config:
+              quality_warnings: yes
+
+          # Plugin: Commits
+          plugins_commits: yes
+          plugins_commits_annual_cutoff: yes
+          plugins_commits_history: yes
+          plugins_commits_dates: yes
+          plugins_commits_limits: 40
+
+          # Plugin: Repositories
+          plugins_repos: yes
+          plugins_repos_featured: self-refactor-core, pixel-forge, data-nexus
+          plugins_repos_pinned: 4
+          plugins_repos_stargazers: yes
+
+          # Plugin: Languages
+          plugins_languages: yes
+          plugins_languages_indepth: yes
+          plugins_languages_limit: 8
+          plugins_languages_threshold: 0%
+
+          # Plugin: GitHub Stats
+          plugins_github: yes
+          plugins_github_separators: caps-|-
+
+          # Plugin: GitHub Activity
+          plugins_github_activity: yes
+          plugins_github_activity_limit: 5
+          plugins_github_activity_lines: 2
+
+          # Plugin: GitHub Issues (Achievements)
+          plugins_github_issues: yes
+          plugins_github_issues_reasons: ['active']
+          plugins_github_issues_limit: 4
+
+          # Plugin: GitHub Skyline
+          plugins_github_skinny: yes
+          plugins_github_skyline_daily: yes
+          plugins_github_skyline_monthly: no
+          plugins_github_skyline_animation: yes
+          plugins_github_skyframe_count: 10
+
+          # Plugin: Social
+          plugins_social: yes
+
+      # ---------- Output ----------
+      - name: Commit metrics to repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: metrics-*.svg
+          commit_message: "📊 Update GitHub metrics dashboard [skip ci]"
+          push_options: [--force]

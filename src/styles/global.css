@@ -965,3 +965,32 @@ section {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================
+   Live Data Section
+   ========================================= */
+.live-data-section {
+  padding: 6rem 0;
+}
+
+.section-badge {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  padding: 0.2rem 0.6rem;
+  background: var(--accent-1-dim);
+  color: var(--accent-1);
+  border: 1px solid var(--accent-1);
+  border-radius: var(--border-radius-sm);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.lang-bar-section {
+  padding: 2rem 0 0;
+}
+
+@media (max-width: 768px) {
+  .section-badge {
+    display: none;
+  }
+}

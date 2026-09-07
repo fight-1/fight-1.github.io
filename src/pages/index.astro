@@ -6,6 +6,7 @@
 import '../styles/global.css';
 import ParticleBackground from '../components/ParticleBackground.astro';
 import ThemeIndicator from '../components/ThemeIndicator.astro';
+import GitHubData from '../components/GitHubData.astro';
 
 // Content data — edit these to customize
 const profile = {
@@ -384,6 +385,20 @@ const profile = {
       </div>
     </section>
 
+    <!-- ====== LIVE GITHUB DATA ====== -->
+    <section class="live-data-section" data-lock-theme="version">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">06</span>
+          Live Data
+          <span class="section-badge">🔌 GitHub API</span>
+        </h2>
+        <div class="section-fade-in">
+          <GitHubData />
+        </div>
+      </div>
+    </section>
+
     <!-- ====== FOOTER ====== -->
     <footer class="footer">
       <div class="container">
@@ -404,14 +419,17 @@ const profile = {
     </footer>
 
     <!-- ====== SCRIPTS ====== -->
-    <script>
+    <script client:load>
       // Import theme switcher
       import { initThemeSwitcher, initChaosEasterEgg } from '../scripts/theme-switcher.ts';
+      // Import real-time GitHub data client
+      import { initGitHubData } from '../lib/github-data-client.ts';
 
       // Initialize
       document.addEventListener('DOMContentLoaded', () => {
         initThemeSwitcher();
         initChaosEasterEgg();
+        initGitHubData();
 
         // Animate skill bars on scroll
         const observer = new IntersectionObserver((entries) => {

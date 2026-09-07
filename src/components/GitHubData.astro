@@ -1,0 +1,352 @@
+---
+// =========================================
+// GitHubData.astro — SPA Component
+// Fetches and renders real GitHub data
+// Client-side hydration with client:visible
+// =========================================
+
+import type {
+  GitHubUser, GitHubRepo, GitHubContributionDay,
+  LanguageStat, StarHistory,
+} from '../lib/github-api';
+---
+
+<!-- This component is hydrated on the client -->
+<svelte:head>
+  <style>
+    .github-data-container {
+      width: 100%;
+      position: relative;
+    }
+
+    .github-loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+
+    .github-loading .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--bg-elevated);
+      border-top-color: var(--accent-1);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .github-error {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--border-radius-md);
+      background: var(--bg-card);
+    }
+
+    .github-data-section {
+      padding: 2rem 0;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .data-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--border-radius-md);
+      padding: 1.5rem;
+      transition: all var(--duration-normal) var(--ease-spring);
+    }
+
+    .data-card:hover {
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .data-card h3 {
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .repo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .repo-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.75rem;
+      background: var(--bg-surface);
+      border-radius: var(--border-radius-sm);
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+    }
+
+    .repo-item:hover {
+      background: var(--bg-elevated);
+    }
+
+    .repo-name {
+      font-weight: 600;
+      color: var(--accent-1);
+      font-size: 0.9rem;
+    }
+
+    .repo-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .repo-meta {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    .contrib-chart {
+      overflow-x: auto;
+      padding: 0.5rem 0;
+    }
+
+    .contrib-chart svg {
+      min-width: 100%;
+    }
+
+    .language-chart {
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+      padding: 0.5rem 0;
+    }
+
+    .language-chart svg {
+      max-width: 100%;
+    }
+
+    .star-chart {
+      overflow-x: auto;
+      padding: 0.5rem 0;
+    }
+
+    .star-chart svg {
+      min-width: 100%;
+    }
+
+    .trophy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .trophy {
+      text-align: center;
+      padding: 0.75rem 0.5rem;
+      border-radius: var(--border-radius-sm);
+      font-size: 0.7rem;
+      transition: all 0.3s ease;
+    }
+
+    .trophy-unlocked {
+      background: var(--accent-1-dim);
+      border: 1px solid var(--accent-1);
+    }
+
+    .trophy-unlocked:hover {
+      box-shadow: var(--glow-1);
+      transform: translateY(-2px);
+    }
+
+    .trophy-locked {
+      background: var(--bg-surface);
+      border: 1px solid rgba(255,255,255,0.04);
+      opacity: 0.5;
+    }
+
+    .trophy-icon {
+      display: block;
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .trophy-title {
+      display: block;
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    .trophy-desc {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      margin-top: 0.15rem;
+    }
+
+    .trophy-more {
+      text-align: center;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .stat-item-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent-1);
+      font-family: var(--font-mono);
+    }
+
+    .stat-item-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    @media (max-width: 768px) {
+      .data-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</svelte:head>
+
+<div class="github-data-container">
+  <div class="github-loading" id="gh-loading">
+    <div class="spinner"></div>
+    Fetching real data from GitHub...
+  </div>
+</div>
+
+<script client:load>
+  import { renderContributionHeatmap, renderLanguagePie, renderStarChart, renderTrophyWall } from '../../lib/charts';
+  import { getUser, getRepos, getContributionDays, getLanguages, getStarHistory, getGitHubStats } from '../../lib/github-api';
+
+  const USERNAME = 'fight-1';
+
+  (async function init() {
+    const container = document.querySelector('.github-data-container');
+    if (!container) return;
+
+    const loadingEl = document.getElementById('gh-loading');
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    const theme = document.documentElement.getAttribute('data-theme') || 'mirror';
+
+    try {
+      // Fetch all data in parallel
+      const [user, repos, contributions, languages, starHistory, stats] = await Promise.all([
+        getUser(USERNAME).catch(() => null),
+        getRepos(USERNAME).catch(() => []),
+        getContributionDays(USERNAME).catch(() => []),
+        getLanguages(USERNAME).catch(() => []),
+        getStarHistory(USERNAME).catch(() => []),
+        getGitHubStats(USERNAME).catch(() => null),
+      ]);
+
+      // Build HTML
+      let html = '<div class="github-data-section">';
+
+      // Stats Row
+      if (stats && !('error' in stats)) {
+        html += `
+          <div class="data-card" style="margin-bottom:1.5rem;">
+            <h3>📊 Real-Time Stats</h3>
+            <div class="stats-row">
+              <div class="stat-item">
+                <div class="stat-item-value">${stats.totalCommits.toLocaleString()}</div>
+                <div class="stat-item-label">Commits</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-item-value">${stats.totalStars}</div>
+                <div class="stat-item-label">Stars</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-item-value">${stats.followerCount}</div>
+                <div class="stat-item-label">Followers</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-item-value">${stats.langCount}</div>
+                <div class="stat-item-label">Languages</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-item-value">${stats.contributionCount}</div>
+                <div class="stat-item-label">Contribution Days</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      html += '<div class="data-grid">';
+
+      // Contribution Chart
+      html += '<div class="data-card"><h3>📅 Contribution Activity</h3><div class="contrib-chart" id="contrib-chart"></div></div>';
+
+      // Language Chart
+      html += '<div class="data-card"><h3>🎨 Languages</h3><div class="language-chart" id="language-chart"></div></div>';
+
+      html += '</div>'; // data-grid
+
+      // Star History Chart
+      html += `
+        <div class="data-card" style="margin-top:1.5rem;">
+          <h3>⭐ Star History</h3>
+          <div class="star-chart" id="star-chart"></div>
+        </div>
+      `;
+
+      html += '</div>'; // github-data-section
+
+      container.innerHTML = html;
+
+      // Render charts
+      const contribContainer = document.getElementById('contrib-chart');
+      if (contribContainer && Array.isArray(contributions)) {
+        renderContributionHeatmap(contribContainer, contributions, theme);
+      }
+
+      const langContainer = document.getElementById('language-chart');
+      if (langContainer && Array.isArray(languages)) {
+        renderLanguagePie(langContainer, languages, theme);
+      }
+
+      const starContainer = document.getElementById('star-chart');
+      if (starContainer && Array.isArray(starHistory)) {
+        renderStarChart(starContainer, starHistory, theme);
+      }
+
+    } catch (err) {
+      container.innerHTML = `<div class="github-error">Failed to load GitHub data: ${err.message}</div>`;
+    }
+  })();
+</script>
