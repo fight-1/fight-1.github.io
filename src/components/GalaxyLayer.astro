@@ -62,6 +62,7 @@
   var mouseX = -9999, mouseY = -9999;
   var hovered = null;
   var boosts = [];      // 流星点亮
+  var awake = false;    // 待机梦境模式：银河苏醒
   var t0 = Date.now();
   var tip = document.getElementById('galaxyTip');
   var theme = document.documentElement.getAttribute('data-theme') || 'mirror';
@@ -228,14 +229,17 @@
 
     var accent = accentColor; // 缓存值，避免每帧 getComputedStyle 触发样式计算
 
-    // 连线
-    for (var l = 0; l < links.length; l++) {
-      var ln = links[l];
-      var sa = stars[ln.a], sb = stars[ln.b];
-      var base = (1 - ln.d / ln.maxD) * 0.07;
-      var boost = boostAt(sa.px, sa.py) + boostAt(sb.px, sb.py);
-      var alpha = Math.min(0.75, base + boost * 0.5);
-      if (alpha <= 0.012) continue;
+      // 连线
+      for (var l = 0; l < links.length; l++) {
+        var ln = links[l];
+        var sa = stars[ln.a], sb = stars[ln.b];
+        var prox = (1 - ln.d / ln.maxD);
+        var base = prox * 0.07;
+        var boost = boostAt(sa.px, sa.py) + boostAt(sb.px, sb.py);
+        // 待机梦境：整片星座自己缓缓连起并以正弦呼吸明灭
+        var breathe = awake ? prox * (0.12 + 0.22 * Math.sin(t * 0.0009 + ln.a * 0.7)) : 0;
+        var alpha = Math.min(0.85, base + boost * 0.5 + breathe);
+        if (alpha <= 0.012) continue;
 
       ctx.save();
       ctx.strokeStyle = accent;
@@ -269,7 +273,8 @@
       var tw = 0.62 + 0.38 * Math.sin(t * s.speed + s.phase);
       var bo = boostAt(s.px, s.py);
       var near = (hovered === s) ? 0.45 : 0;
-      var alpha = Math.min(1, (s.real ? 0.55 : 0.3) * tw + bo * 0.6 + near);
+      var awakeStar = awake ? 0.15 * (0.5 + 0.5 * Math.sin(t * 0.0009 + i)) : 0;
+      var alpha = Math.min(1, (s.real ? 0.55 : 0.3) * tw + bo * 0.6 + near + awakeStar);
       var r = s.radius * (1 + bo * 0.7 + (hovered === s ? 0.5 : 0));
       drawStar(s, r, alpha, accent);
     }
@@ -386,6 +391,10 @@
     boosts.push({ x: e.detail.x, y: e.detail.y, r: 170, life: 1 });
     if (boosts.length > 12) boosts.shift();
   });
+
+  // ---------- 联动：待机梦境模式（银河苏醒） ----------
+  window.addEventListener('dreamEnter', function() { awake = true; if (reduce) draw(); });
+  window.addEventListener('dreamExit', function() { awake = false; if (reduce) draw(); });
 
   // ---------- 数据 / 主题 ----------
   window.addEventListener('ghDataReady', function(e) {
