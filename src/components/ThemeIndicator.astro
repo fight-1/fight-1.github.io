@@ -1,0 +1,119 @@
+---
+// Theme Indicator — Floating theme switcher dots
+---
+
+<div class="theme-indicator" aria-label="Theme selector">
+  <button
+    class="theme-dot"
+    data-theme="mirror"
+    title="Mirror Mode — Cyberpunk"
+  >
+    <span class="dot-visual" style="background: #00f3ff;"></span>
+  </button>
+  <button
+    class="theme-dot"
+    data-theme="version"
+    title="Version Mode — Terminal"
+  >
+    <span class="dot-visual" style="background: #00ff88;"></span>
+  </button>
+  <button
+    class="theme-dot"
+    data-theme="loop"
+    title="Loop Mode — Fluid"
+  >
+    <span class="dot-visual" style="background: hsl(270, 80%, 68%);"></span>
+  </button>
+</div>
+
+<style>
+  .theme-indicator {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-surface);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all var(--duration-normal) var(--ease-spring);
+    opacity: 0.85;
+  }
+
+  .theme-indicator:hover {
+    opacity: 1;
+    transform: translateX(-2px);
+  }
+
+  [data-theme="mirror"] .theme-indicator {
+    box-shadow: -4px 0 20px rgba(0, 243, 255, 0.15);
+  }
+
+  .theme-dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 50%;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .theme-dot:hover {
+    transform: scale(1.3);
+  }
+
+  .theme-dot:active {
+    transform: scale(0.9);
+  }
+
+  .dot-visual {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+
+  .theme-dot.active .dot-visual {
+    width: 12px;
+    height: 12px;
+    box-shadow: 0 0 12px currentColor;
+  }
+
+  .theme-dot.active::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.4); opacity: 0; }
+  }
+
+  /* Mobile: smaller dots */
+  @media (max-width: 768px) {
+    .theme-indicator {
+      bottom: 1rem;
+      right: 1rem;
+      padding: 0.5rem;
+      gap: 0.5rem;
+    }
+    .theme-dot { width: 10px; height: 10px; }
+    .dot-visual { width: 6px; height: 6px; }
+    .theme-dot.active .dot-visual { width: 10px; height: 10px; }
+  }
+</style>

@@ -1,0 +1,491 @@
+---
+// =========================================
+// Fight-1 — Main Page
+// Tri-State Self: Mirror | Version | Loop
+// =========================================
+import '../styles/global.css';
+import ParticleBackground from '../components/ParticleBackground.astro';
+import ThemeIndicator from '../components/ThemeIndicator.astro';
+
+// Content data — edit these to customize
+const profile = {
+  name: 'fight-1',
+  tagline: 'Me against Me, for Me.',
+  taglineShort: 'Self vs Self. Evolution guaranteed.',
+  location: 'Earth, Milky Way',
+  available: true,
+  about: [
+    'Treat myself as an open-source project — always iterating, never finished.',
+    'Today I beat yesterday\'s limits. Tomorrow, I push further.',
+    'This is not a portfolio. It\'s a living log of self-improvement.',
+  ],
+  patchNotes: [
+    { version: 'v26.09', date: '2026-09', changes: [
+      { type: 'add', text: 'New skill tree: Systems Architecture' },
+      { type: 'fix', text: 'Procrastination bug in weekend builds' },
+      { type: 'perf', text: 'Optimized learning pipeline — 2x throughput' },
+      { type: 'warn', text: 'Coffee dependency remains unresolved' },
+    ]},
+    { version: 'v26.03', date: '2026-03', changes: [
+      { type: 'add', text: 'Launched first open-source contribution' },
+      { type: 'fix', text: 'Fixed imposter syndrome (temporary)' },
+      { type: 'nerf', text: 'Nerfed: doom-scrolling capability' },
+    ]},
+    { version: 'v25.09', date: '2025-09', changes: [
+      { type: 'add', text: 'System initialized — first commit' },
+      { type: 'add', text: 'Core loop established: Reflect → Build → Evolve' },
+    ]},
+  ],
+  skills: [
+    { name: 'JavaScript/TypeScript', level: 90, category: 'core' },
+    { name: 'Python', level: 75, category: 'core' },
+    { name: 'Rust', level: 55, category: 'growing' },
+    { name: 'React/Vue', level: 80, category: 'core' },
+    { name: 'Astro', level: 85, category: 'core' },
+    { name: 'System Design', level: 60, category: 'growing' },
+    { name: 'DevOps', level: 50, category: 'growing' },
+    { name: 'AI/ML', level: 45, category: 'exploring' },
+  ],
+  projects: [
+    {
+      name: 'self-refactor-core',
+      description: 'The internal framework. Refactoring my own patterns, one habit at a time.',
+      tags: ['life', 'philosophy', 'iterative'],
+      status: 'wip', // wip | won | learned | loss
+      stars: '∞',
+      updated: 'Just now',
+    },
+    {
+      name: 'pixel-forge',
+      description: 'Generative art engine — turning algorithms into visual stories.',
+      tags: ['creative-coding', 'canvas', 'webgl'],
+      status: 'won',
+      stars: '★ 42',
+      updated: '2026-08-15',
+    },
+    {
+      name: 'data-nexus',
+      description: 'Real-time data visualization dashboard for personal metrics.',
+      tags: ['visualization', 'react', 'd3'],
+      status: 'learned',
+      stars: '★ 28',
+      updated: '2026-06-20',
+    },
+    {
+      name: 'echo-protocol',
+      description: 'A messaging experiment that taught me about network patterns.',
+      tags: ['networking', 'rust', 'learning'],
+      status: 'learned',
+      stars: '★ 15',
+      updated: '2026-04-10',
+    },
+    {
+      name: 'void-runner',
+      description: 'Roguelike game prototype — failed beautifully, learned immensely.',
+      tags: ['game-dev', 'rust', 'learning'],
+      status: 'loss',
+      stars: '★ 8',
+      updated: '2026-01-05',
+    },
+  ],
+  stats: {
+    commits: 2847,
+    contributions: 365,
+    languages: 8,
+    linesOfCode: '1.2M',
+    currentStreak: '42 days',
+    longestStreak: '127 days',
+  },
+  philosophy: [
+    { title: 'Reflect', icon: '🔄', desc: 'Question assumptions, analyze patterns, understand the why.' },
+    { title: 'Build', icon: '🔨', desc: 'Ship things. Imperfect action beats perfect inaction every time.' },
+    { title: 'Evolve', icon: '🧬', desc: 'Integrate lessons. The new version is always better than the last.' },
+  ],
+  cta: {
+    title: 'Challenge Me',
+    description: 'Found a bug in my thinking? Want to build something together?',
+    email: 'hello@fight-1.dev',
+    github: 'fight-1',
+  },
+};
+---
+
+<!doctype html>
+<html lang="en" data-theme="mirror">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Fight-1 — Tri-State Self. Me against Me, for Me. A living portfolio of reflection, building, and evolution." />
+    <meta name="theme-color" content="#09090b" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Fight-1 | Tri-State Self" />
+    <meta property="og:description" content="Me against Me, for Me. A living portfolio of self-evolution." />
+    <meta property="og:type" content="website" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <title>Fight-1 — Tri-State Self</title>
+  </head>
+
+  <body class="min-h-screen">
+    <!-- Cursor Glow Effect -->
+    <div class="cursor-glow" aria-hidden="true"></div>
+
+    <!-- Particle Background -->
+    <ParticleBackground />
+
+    <!-- Theme Indicator (always visible) -->
+    <ThemeIndicator />
+
+    <!-- ====== HEADER / HERO ====== -->
+    <header class="hero-section" data-lock-theme="mirror">
+      <div class="hero-content">
+        <!-- Status badge -->
+        <div class="hero-badge animate-fade-in-up">
+          <span class="status-dot"></span>
+          <span class="status-text">{profile.location}</span>
+        </div>
+
+        <!-- Main heading -->
+        <h1 class="hero-title animate-fade-in-up" style="animation-delay: 0.1s;">
+          <span class="gradient-text">{profile.name}</span>
+        </h1>
+
+        <!-- Tagline -->
+        <p class="hero-tagline animate-fade-in-up" style="animation-delay: 0.2s;">
+          {profile.tagline}
+        </p>
+
+        <!-- Short description -->
+        <p class="hero-desc animate-fade-in-up" style="animation-delay: 0.3s;">
+          {profile.taglineShort}
+        </p>
+
+        <!-- Theme label -->
+        <div class="theme-label animate-fade-in-up" style="animation-delay: 0.4s;">
+          <span class="theme-label-text"></span>
+          <span class="theme-label-hint">Press T to cycle</span>
+        </div>
+      </div>
+
+      <!-- Scroll indicator -->
+      <div class="scroll-indicator animate-fade-in-up" style="animation-delay: 0.6s;">
+        <div class="scroll-mouse">
+          <div class="scroll-wheel"></div>
+        </div>
+        <span>Scroll to explore</span>
+      </div>
+    </header>
+
+    <!-- ====== PHILOSOPHY CYCLE ====== -->
+    <section class="philosophy-section" data-lock-theme="loop">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">01</span>
+          The Loop
+        </h2>
+
+        <div class="philosophy-grid section-fade-in">
+          {profile.philosophy.map((item, i) => (
+            <div class="philosophy-card" style="animation-delay: {i * 0.15}s;">
+              <div class="philosophy-icon">{item.icon}</div>
+              <h3>{item.title}</h3>
+              <p>{item.desc}</p>
+              <div class="philosophy-arrow">
+                {i < profile.philosophy.length - 1 ? '→' : '↻'}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== ABOUT / PATCH NOTES ====== -->
+    <section class="about-section" data-lock-theme="version">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">02</span>
+          Patch Notes
+        </h2>
+
+        <div class="about-grid">
+          <!-- About text -->
+          <div class="about-text section-fade-in">
+            {profile.about.map((text) => (
+              <p class="about-paragraph">{text}</p>
+            ))}
+          </div>
+
+          <!-- Changelog -->
+          <div class="changelog section-fade-in">
+            {profile.patchNotes.map((note) => (
+              <div class="changelog-entry">
+                <div class="changelog-header">
+                  <span class="changelog-version">{note.version}</span>
+                  <span class="changelog-date">{note.date}</span>
+                </div>
+                <ul class="changelog-list">
+                  {note.changes.map((change) => (
+                    <li class="changelog-item">
+                      <span class={`change-badge change-${change.type}`}>
+                        {change.type === 'add' ? '+ Added' :
+                         change.type === 'fix' ? '⚑ Fixed' :
+                         change.type === 'perf' ? '⚡ Perf' :
+                         change.type === 'nerf' ? '🔻 Nerfed' :
+                         change.type === 'warn' ? '⚠ Known' : change.type}
+                      </span>
+                      <span>{change.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== SKILLS / LOADOUT ====== -->
+    <section class="skills-section" data-lock-theme="mirror">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">03</span>
+          Weapon Loadout
+        </h2>
+
+        <div class="skills-grid section-fade-in">
+          {profile.skills.map((skill) => (
+            <div class="skill-card">
+              <div class="skill-header">
+                <span class="skill-name">{skill.name}</span>
+                <span class="skill-level">{skill.level}%</span>
+              </div>
+              <div class="bar-container">
+                <div
+                  class="bar-fill accent-1-gradient"
+                  style="width: 0%;"
+                  data-width={skill.level}
+                ></div>
+              </div>
+              <span class="skill-category">{skill.category}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== PROJECTS / BATTLE LOG ====== -->
+    <section class="projects-section" data-lock-theme="loop">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">04</span>
+          Battle Log
+        </h2>
+
+        <div class="projects-grid section-fade-in">
+          {profile.projects.map((project) => (
+            <div class="project-card">
+              <div class="project-header">
+                <div class="project-icon"></div>
+                <div class="project-status-badge status-{project.status}">
+                  {project.status === 'won' ? '✓ Won' :
+                   project.status === 'learned' ? '⟳ Learned' :
+                   project.status === 'loss' ? '✗ Lost' : '◌ WIP'}
+                </div>
+              </div>
+              <h3 class="project-name">
+                <a href={`https://github.com/${profile.github}/${project.name}`} target="_blank" rel="noopener">
+                  {project.name}
+                </a>
+              </h3>
+              <p class="project-desc">{project.description}</p>
+              <div class="project-tags">
+                {project.tags.map((tag) => (
+                  <span class="tag">{tag}</span>
+                ))}
+              </div>
+              <div class="project-footer">
+                <span class="project-stars">{project.stars}</span>
+                <span class="project-updated">Updated {project.updated}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== STATS / GROWTH METRICS ====== -->
+    <section class="stats-section" data-lock-theme="version">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">05</span>
+          Growth Metrics
+        </h2>
+
+        <div class="stats-grid section-fade-in">
+          <div class="stat-card">
+            <div class="stat-value gradient-text">{profile.stats.commits.toLocaleString()}</div>
+            <div class="stat-label">Commits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value gradient-text">{profile.stats.contributions}</div>
+            <div class="stat-label">Day Contribution Streak</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value gradient-text">{profile.stats.languages}</div>
+            <div class="stat-label">Languages</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value gradient-text">{profile.stats.linesOfCode}</div>
+            <div class="stat-label">Lines of Code</div>
+          </div>
+          <div class="stat-card stat-card-highlight">
+            <div class="stat-value gradient-text">{profile.stats.currentStreak}</div>
+            <div class="stat-label">Current Streak 🔥</div>
+          </div>
+          <div class="stat-card stat-card-highlight">
+            <div class="stat-value gradient-text">{profile.stats.longestStreak}</div>
+            <div class="stat-label">Longest Streak</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== CTA / CONTACT ====== -->
+    <section class="cta-section" data-lock-theme="loop">
+      <div class="container">
+        <div class="cta-card section-fade-in">
+          <h2>{profile.cta.title}</h2>
+          <p>{profile.cta.description}</p>
+          <div class="cta-buttons">
+            <a
+              href={`https://github.com/${profile.cta.github}`}
+              target="_blank"
+              rel="noopener"
+              class="cta-btn cta-btn-primary"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+              View on GitHub
+            </a>
+            <a
+              href={`mailto:${profile.cta.email}`}
+              class="cta-btn cta-btn-secondary"
+            >
+              ✉ {profile.cta.email}
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== FOOTER ====== -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-left">
+            <span class="footer-name gradient-text">fight-1</span>
+            <span class="footer-sep">·</span>
+            <span>Built with Astro + Tailwind</span>
+          </div>
+          <div class="footer-center">
+            <span class="footer-theme-label"></span>
+          </div>
+          <div class="footer-right">
+            <span class="footer-evolution">Evolving since 2025</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ====== SCRIPTS ====== -->
+    <script>
+      // Import theme switcher
+      import { initThemeSwitcher, initChaosEasterEgg } from '../scripts/theme-switcher.ts';
+
+      // Initialize
+      document.addEventListener('DOMContentLoaded', () => {
+        initThemeSwitcher();
+        initChaosEasterEgg();
+
+        // Animate skill bars on scroll
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const bars = entry.target.querySelectorAll('[data-width]');
+              bars.forEach((bar, i) => {
+                setTimeout(() => {
+                  bar.style.width = bar.dataset.width + '%';
+                }, i * 80);
+              });
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.2 });
+
+        document.querySelectorAll('.skills-grid').forEach((grid) => {
+          observer.observe(grid);
+        });
+
+        // Section fade-in animation
+        const fadeObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.style.animation = 'fadeInUp 0.6s var(--ease-spring) both';
+              fadeObserver.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.section-fade-in').forEach((el) => {
+          el.style.opacity = '0';
+          fadeObserver.observe(el);
+        });
+
+        // Update theme label
+        const updateThemeLabel = () => {
+          const theme = document.documentElement.getAttribute('data-theme') || 'mirror';
+          const labels = {
+            mirror: 'Mirror Mode',
+            version: 'Version Mode',
+            loop: 'Loop Mode',
+          };
+          const hints = {
+            mirror: '⚡ Neon active',
+            version: '> System ready',
+            loop: '∞ Flowing',
+          };
+
+          document.querySelectorAll('.theme-label-text').forEach((el) => {
+            el.textContent = `◈ ${labels[theme]}`;
+          });
+          document.querySelectorAll('.theme-label-hint').forEach((el) => {
+            el.textContent = hints[theme];
+          });
+
+          // Update footer theme label
+          document.querySelectorAll('.footer-theme-label').forEach((el) => {
+            el.textContent = `● ${labels[theme]}`;
+          });
+        };
+
+        updateThemeLabel();
+        window.addEventListener('themeChanged', updateThemeLabel);
+
+        // Cursor glow follows mouse
+        const glow = document.querySelector('.cursor-glow');
+        if (glow && window.matchMedia('(pointer: fine)').matches) {
+          document.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
