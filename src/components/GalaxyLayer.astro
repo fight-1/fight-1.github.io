@@ -229,6 +229,9 @@
 
     var accent = accentColor; // 缓存值，避免每帧 getComputedStyle 触发样式计算
 
+      // 待机梦境态下，苏醒的星座改用柔和冷白，与主题高饱和色解耦（避免切到橙黄配色满屏发黄）
+      var dreamCol = awake ? 'rgba(202,226,255,1)' : accent;
+
       // 连线
       for (var l = 0; l < links.length; l++) {
         var ln = links[l];
@@ -236,13 +239,13 @@
         var prox = (1 - ln.d / ln.maxD);
         var base = prox * 0.07;
         var boost = boostAt(sa.px, sa.py) + boostAt(sb.px, sb.py);
-        // 待机梦境：整片星座自己缓缓连起并以正弦呼吸明灭
-        var breathe = awake ? prox * (0.12 + 0.22 * Math.sin(t * 0.0009 + ln.a * 0.7)) : 0;
+        // 待机梦境：整片星座自己缓缓连起并以正弦呼吸明灭（强度收敛，更克制不刺眼）
+        var breathe = awake ? prox * (0.07 + 0.13 * Math.sin(t * 0.0009 + ln.a * 0.7)) : 0;
         var alpha = Math.min(0.85, base + boost * 0.5 + breathe);
         if (alpha <= 0.012) continue;
 
       ctx.save();
-      ctx.strokeStyle = accent;
+      ctx.strokeStyle = dreamCol;
       ctx.globalAlpha = alpha;
       ctx.lineWidth = theme === 'mirror' ? 0.7 : theme === 'version' ? 0.6 : 1;
 
@@ -273,10 +276,10 @@
       var tw = 0.62 + 0.38 * Math.sin(t * s.speed + s.phase);
       var bo = boostAt(s.px, s.py);
       var near = (hovered === s) ? 0.45 : 0;
-      var awakeStar = awake ? 0.15 * (0.5 + 0.5 * Math.sin(t * 0.0009 + i)) : 0;
+      var awakeStar = awake ? 0.1 * (0.5 + 0.5 * Math.sin(t * 0.0009 + i)) : 0;
       var alpha = Math.min(1, (s.real ? 0.55 : 0.3) * tw + bo * 0.6 + near + awakeStar);
       var r = s.radius * (1 + bo * 0.7 + (hovered === s ? 0.5 : 0));
-      drawStar(s, r, alpha, accent);
+      drawStar(s, r, alpha, dreamCol);
     }
   }
 
