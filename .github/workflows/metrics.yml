@@ -18,7 +18,7 @@ jobs:
     steps:
       # ---------- Primary Metrics ----------
       - name: Generate Metrics Dashboard
-        uses: lowlighter/metrics@latest
+        uses: lowlighter/metrics@v3.34
         with:
           token: ${{ secrets.METRICS_TOKEN }}
           base: ''

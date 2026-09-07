@@ -145,8 +145,8 @@ const profile = {
           <span class="gradient-text" id="hero-username"></span>
         </h1>
 
-        <!-- Avatar -->
-        <img id="hero-avatar" src="" alt="" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--accent-1);margin-bottom:1rem;display:none;box-shadow:0 0 20px rgba(0,243,255,0.3);" class="animate-fade-in-up" />
+        <!-- Avatar (real GitHub avatar_url; offline fallback applied via JS) -->
+        <img id="hero-avatar" alt="" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--accent-1);margin-bottom:1rem;display:none;box-shadow:0 0 20px rgba(0,243,255,0.3);" class="animate-fade-in-up" />
 
         <!-- Tagline -->
         <p class="hero-tagline animate-fade-in-up" style="animation-delay: 0.2s;">
@@ -434,6 +434,17 @@ const profile = {
 
         var USERNAME = 'fight-1';
 
+        // Offline-capable fallback avatar (initials), used until/below the real
+        // GitHub avatar_url is fetched. Never leaves the avatar blank.
+        var FALLBACK_SVG =
+          "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'>" +
+          "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
+          "<stop offset='0' stop-color='#00f3ff'/><stop offset='1' stop-color='#ff00ff'/></linearGradient></defs>" +
+          "<rect width='160' height='160' rx='80' fill='url(#g)'/>" +
+          "<text x='80' y='80' dy='.35em' font-family='Arial,Helvetica,sans-serif' font-size='60' " +
+          "font-weight='700' fill='#ffffff' text-anchor='middle'>F1</text></svg>";
+        var FALLBACK_AVATAR = 'data:image/svg+xml,' + encodeURIComponent(FALLBACK_SVG);
+
         function setInitialState() {
           var stored = localStorage.getItem('fight1-theme');
           if (stored && THEMES.indexOf(stored) !== -1) {
@@ -580,7 +591,7 @@ const profile = {
               x: x, y: y,
               vx: Math.cos(angle) * speed,
               vy: Math.sin(angle) * speed,
-              life: 1, decay: 0.012 + Math.random() * 0.01,
+              life: 1, decay: 0.006 + Math.random() * 0.006,
               color: 'hsl(' + hue + ',90%,' + (55 + Math.random() * 15) + '%)',
               size: 2 + Math.random() * 2,
             });
@@ -593,7 +604,7 @@ const profile = {
             vy: -(1 + Math.random() * 1.5),
             sway: Math.random() * Math.PI * 2,
             swaySpeed: 0.02 + Math.random() * 0.03,
-            life: 1, decay: 0.006 + Math.random() * 0.004,
+            life: 1, decay: 0.0035 + Math.random() * 0.003,
             size: 16 + Math.random() * 18,
             color: HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)],
           });
@@ -648,15 +659,23 @@ const profile = {
 
         function launchCelebration() {
           var W = window.innerWidth, H = window.innerHeight;
-          for (var k = 0; k < 6; k++) {
+          // Fireworks: a longer, staggered barrage so the show keeps going (~3.5s spread).
+          var fwCount = 12;
+          for (var k = 0; k < fwCount; k++) {
             (function(delay) {
               setTimeout(function() {
-                spawnFirework(W * (0.15 + Math.random() * 0.7), H * (0.25 + Math.random() * 0.4));
+                spawnFirework(W * (0.12 + Math.random() * 0.76), H * (0.2 + Math.random() * 0.45));
               }, delay);
-            })(k * 260);
+            })(k * 320);
           }
-          for (var m = 0; m < 16; m++) {
-            spawnHeart(W * Math.random(), H * (0.55 + Math.random() * 0.45));
+          // Hearts: stagger across the show so they keep floating up throughout (~3.5s spread).
+          var heartCount = 26;
+          for (var m = 0; m < heartCount; m++) {
+            (function(delay) {
+              setTimeout(function() {
+                spawnHeart(W * Math.random(), H * (0.5 + Math.random() * 0.5));
+              }, delay);
+            })(m * 140);
           }
           if (!celebrateRAF) celebrateLoop();
         }
@@ -959,7 +978,10 @@ const profile = {
 
           var avatarEl = document.getElementById('hero-avatar');
           if (avatarEl && user && user.avatar_url) {
-            avatarEl.src = user.avatar_url;
+            // Request a crisp size; fall back to the offline placeholder if the image 404s.
+            var realAvatar = user.avatar_url + (user.avatar_url.indexOf('?') >= 0 ? '&' : '?') + 's=160';
+            avatarEl.onerror = function() { avatarEl.src = FALLBACK_AVATAR; avatarEl.onerror = null; };
+            avatarEl.src = realAvatar;
             avatarEl.alt = user.login;
             avatarEl.style.display = 'block';
           }
@@ -1095,6 +1117,15 @@ const profile = {
         initCelebrationEasterEgg();
         initColorPanel();
         updateThemeLabel();
+
+        // Show the offline fallback avatar immediately so it's never blank;
+        // fetchProfileData() upgrades it to the real GitHub avatar when available.
+        var heroAvatarEl = document.getElementById('hero-avatar');
+        if (heroAvatarEl) {
+          heroAvatarEl.src = FALLBACK_AVATAR;
+          heroAvatarEl.alt = USERNAME;
+          heroAvatarEl.style.display = 'block';
+        }
 
         // Fetch real GitHub data
         fetchProfileData();
