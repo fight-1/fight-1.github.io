@@ -1,0 +1,228 @@
+---
+// =========================================
+// MeteorLayer.astro
+// 分主题的"流星滑落"背景层
+// Mirror  → 锐利霓虹拖影（青/洋红 RGB 分离）
+// Version → 终端字符雨（等宽字符拖尾）
+// Loop    → 柔和紫色彗星（渐变尾迹）
+// 特性：事件驱动 rAF，没有流星时完全休眠，不占 CPU
+// =========================================
+---
+
+<style>
+.meteor-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+</style>
+
+<canvas class="meteor-canvas" id="meteorCanvas" aria-hidden="true"></canvas>
+
+<script client:load>
+(function() {
+  var canvas = document.getElementById('meteorCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // 尊重系统的"减少动态效果"设置
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var meteors = [];
+  var raf = null;
+  var spawnTimer = null;
+  var theme = document.documentElement.getAttribute('data-theme') || 'mirror';
+  var isNarrow = window.innerWidth < 768;
+  var GLYPHS = '01>xX$#*+=<>/\\|[]{}';
+
+  function randChar() {
+    return GLYPHS.charAt(Math.floor(Math.random() * GLYPHS.length));
+  }
+
+  function resize() {
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', function() {
+    resize();
+    isNarrow = window.innerWidth < 768;
+  });
+
+  function spawn() {
+    var w = window.innerWidth;
+    var fromLeft = Math.random() < 0.5;
+    var x = fromLeft ? Math.random() * w * 0.55 : w * 0.45 + Math.random() * w * 0.5;
+    var y = -80 - Math.random() * 140;
+    // 与竖直方向成约 18~33 度角滑落
+    var angle = (fromLeft ? 1 : -1) * (0.32 + Math.random() * 0.26);
+    var speed = 4 + Math.random() * 5;
+    var chars = [];
+    for (var c = 0; c < 8; c++) chars.push(randChar());
+
+    meteors.push({
+      x: x,
+      y: y,
+      vx: Math.sin(angle) * speed,
+      vy: Math.cos(angle) * speed,
+      len: 100 + Math.random() * 150,
+      life: 1,
+      decay: 0.0035 + Math.random() * 0.004,
+      chars: chars,
+      seed: Math.random()
+    });
+
+    if (!raf) loop();
+  }
+
+  function scheduleSpawn() {
+    clearTimeout(spawnTimer);
+    var base = isNarrow ? 4200 : 2000;
+    var jitter = isNarrow ? 4200 : 3200;
+    spawnTimer = setTimeout(function() {
+      spawn();
+      scheduleSpawn();
+    }, base + Math.random() * jitter);
+  }
+
+  function loop() {
+    raf = requestAnimationFrame(loop);
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    for (var i = meteors.length - 1; i >= 0; i--) {
+      var m = meteors[i];
+      m.x += m.vx;
+      m.y += m.vy;
+      m.life -= m.decay;
+
+      if (m.life <= 0 || m.y - m.len > window.innerHeight + 100 || m.x < -250 || m.x > window.innerWidth + 250) {
+        meteors.splice(i, 1);
+        continue;
+      }
+      drawMeteor(m);
+    }
+
+    // 没有流星就彻底停掉 rAF，空闲时不占 CPU
+    if (meteors.length === 0) {
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    }
+  }
+
+  function drawMeteor(m) {
+    var alpha = Math.max(0, Math.min(1, m.life));
+    var d = Math.sqrt(m.vx * m.vx + m.vy * m.vy) || 1;
+    var ux = m.vx / d;
+    var uy = m.vy / d;
+    var tx = m.x - ux * m.len;
+    var ty = m.y - uy * m.len;
+
+    if (theme === 'mirror') {
+      // 锐利霓虹拖影 + RGB 分离
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'butt';
+
+      var g = ctx.createLinearGradient(tx, ty, m.x, m.y);
+      g.addColorStop(0, 'rgba(0,243,255,0)');
+      g.addColorStop(1, 'rgba(0,243,255,' + (0.55 * alpha).toFixed(3) + ')');
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(m.x, m.y);
+      ctx.stroke();
+
+      // 洋红偏移，做出色差/故障感
+      ctx.strokeStyle = 'rgba(255,0,255,' + (0.22 * alpha).toFixed(3) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tx + 2, ty);
+      ctx.lineTo(m.x + 2, m.y);
+      ctx.stroke();
+
+      // 菱形弹头
+      ctx.translate(m.x, m.y);
+      ctx.rotate(Math.atan2(uy, ux));
+      ctx.fillStyle = 'rgba(210,255,255,' + (0.95 * alpha).toFixed(3) + ')';
+      ctx.shadowColor = '#00f3ff';
+      ctx.shadowBlur = 12;
+      ctx.fillRect(-3, -3, 6, 6);
+      ctx.restore();
+    } else if (theme === 'version') {
+      // 终端字符雨：头部字符 + 渐隐字符拖尾
+      ctx.save();
+      ctx.font = '14px "JetBrains Mono", "Fira Code", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      var steps = m.chars.length - 1;
+      for (var s = steps; s >= 0; s--) {
+        var t = s / steps;
+        var px = m.x - ux * m.len * t;
+        var py = m.y - uy * m.len * t;
+        var a = alpha * (1 - t) * 0.92;
+        if (s === 0) {
+          ctx.fillStyle = 'rgba(190,255,220,' + a.toFixed(3) + ')';
+        } else {
+          ctx.fillStyle = 'rgba(0,255,136,' + a.toFixed(3) + ')';
+        }
+        ctx.fillText(m.chars[s], px, py);
+      }
+      ctx.restore();
+    } else {
+      // Loop：柔和紫色彗星
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      var g2 = ctx.createLinearGradient(tx, ty, m.x, m.y);
+      g2.addColorStop(0, 'rgba(180,120,255,0)');
+      g2.addColorStop(0.6, 'rgba(200,140,255,' + (0.3 * alpha).toFixed(3) + ')');
+      g2.addColorStop(1, 'rgba(235,215,255,' + (0.62 * alpha).toFixed(3) + ')');
+      ctx.strokeStyle = g2;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(m.x, m.y);
+      ctx.stroke();
+
+      var r = 2.5;
+      var rg = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 4);
+      rg.addColorStop(0, 'rgba(255,240,255,' + alpha.toFixed(3) + ')');
+      rg.addColorStop(1, 'rgba(180,120,255,0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, r * 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // 切主题时立即换成对应风格
+  window.addEventListener('themeChanged', function(e) {
+    theme = (e.detail && e.detail.theme) || document.documentElement.getAttribute('data-theme') || 'mirror';
+    meteors = [];
+  });
+
+  // 标签页不可见时暂停
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      if (spawnTimer) clearTimeout(spawnTimer);
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+    } else {
+      scheduleSpawn();
+    }
+  });
+
+  scheduleSpawn();
+  spawn();
+})();
+</script>

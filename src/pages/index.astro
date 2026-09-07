@@ -5,6 +5,7 @@
 // Real data integration
 // =========================================
 import '../styles/global.css';
+import MeteorLayer from '../components/MeteorLayer.astro';
 import ParticleBackground from '../components/ParticleBackground.astro';
 import ThemeIndicator from '../components/ThemeIndicator.astro';
 import GitHubData from '../components/GitHubData.astro';
@@ -235,6 +236,9 @@ const profile = {
   <body class="min-h-screen">
     <!-- Cursor Glow Effect -->
     <div class="cursor-glow" aria-hidden="true"></div>
+
+    <!-- Meteor / falling layer (per-theme) -->
+    <MeteorLayer />
 
     <!-- Particle Background -->
     <ParticleBackground />

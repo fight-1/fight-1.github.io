@@ -52,7 +52,11 @@
 }
 
 [data-theme="mirror"] body {
-  background: linear-gradient(180deg, var(--bg-base) 0%, #0a0a20 50%, var(--bg-base) 100%);
+  /* 注意：必须用 background-color + background-image 分开写。
+     用 background 简写会把 background-color 重置为 transparent，
+     切到其它主题时渐变消失而底色还在过渡 → 整屏闪一下。 */
+  background-color: var(--bg-base);
+  background-image: linear-gradient(180deg, var(--bg-base) 0%, #0a0a20 50%, var(--bg-base) 100%);
 }
 
 [data-theme="mirror"] body::before {
@@ -503,7 +507,9 @@
 }
 
 [data-theme="loop"] body {
-  background: linear-gradient(135deg,
+  /* 同 Mirror：拆开写，避免切主题时 background-color 被简写重置成 transparent */
+  background-color: var(--bg-base);
+  background-image: linear-gradient(135deg,
     hsl(var(--custom-hue), 30%, 5%) 0%,
     hsl(calc(var(--custom-hue) + 40), 25%, 7%) 50%,
     hsl(calc(var(--custom-hue) + 80), 20%, 5%) 100%
@@ -747,6 +753,8 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 兜底：防止主题切换瞬间 body 背景透明时透出浏览器底色（全屏闪白） */
+  background-color: var(--bg-base);
 }
 
 body {
