@@ -243,6 +243,10 @@ const profile = {
       .preset-swatch.active { border-color: var(--accent-1); background: rgba(255,255,255,0.08); }
       .preset-chip { width: 18px; height: 18px; border-radius: 4px; flex: 0 0 auto; box-shadow: 0 0 6px rgba(0,0,0,0.5); }
       .preset-name { font-size: 0.68rem; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* Weapon Loadout meta (real-data source hint) */
+      .skill-meta { display: block; margin-top: 0.4rem; font-size: 0.68rem; color: #64748b;
+        font-family: var(--font-mono); letter-spacing: 0.02em; }
     </style>
   </head>
 
@@ -378,7 +382,7 @@ const profile = {
           Weapon Loadout
         </h2>
 
-        <div class="skills-grid section-fade-in">
+        <div class="skills-grid section-fade-in" id="skillsGrid">
           {profile.skills.map((skill) => (
             <div class="skill-card">
               <div class="skill-header">
@@ -1236,6 +1240,71 @@ const profile = {
           renderGrid();
         }
 
+        function escapeHtml(str) {
+          return String(str).replace(/[&<>"']/g, function(c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+          });
+        }
+
+        // Weapon Loadout：用真实仓库主语言统计替换写死的技能等级
+        // 方案 A —— 只复用已拉取的 repos 数据，零额外请求（未认证限流 60 次/小时，很关键）
+        function updateWeaponLoadout(repos) {
+          var grid = document.getElementById('skillsGrid');
+          if (!grid || !repos || !repos.length) return;
+
+          var stat = {};
+          repos.forEach(function(r) {
+            var lang = r.language;
+            if (!lang) return;
+            if (!stat[lang]) stat[lang] = { count: 0, stars: 0 };
+            stat[lang].count += 1;
+            stat[lang].stars += (r.stargazers_count || 0);
+          });
+
+          var entries = Object.keys(stat).map(function(k) {
+            return { name: k, count: stat[k].count, stars: stat[k].stars };
+          });
+          if (!entries.length) return; // 没有语言数据就保留写死的兜底内容
+
+          entries.sort(function(a, b) { return (b.count - a.count) || (b.stars - a.stars); });
+          var top = entries.slice(0, 8);
+          var maxCount = top[0].count || 1;
+          var maxStars = top.reduce(function(m, e) { return Math.max(m, e.stars); }, 0) || 1;
+
+          grid.innerHTML = top.map(function(e, i) {
+            // 等级 = 70% 仓库数占比 + 30% 星数占比（避免一堆小仓库把占比刷高）
+            var level = Math.round((e.count / maxCount * 0.7 + e.stars / maxStars * 0.3) * 100);
+            if (level < 8) level = 8;
+            var cat = i < 3 ? 'core' : 'growing';
+            return '<div class="skill-card">' +
+                '<div class="skill-header">' +
+                  '<span class="skill-name">' + escapeHtml(e.name) + '</span>' +
+                  '<span class="skill-level">' + level + '%</span>' +
+                '</div>' +
+                '<div class="bar-container">' +
+                  '<div class="bar-fill accent-1-gradient" style="width: 0%;" data-width="' + level + '"></div>' +
+                '</div>' +
+                '<span class="skill-category">' + cat + '</span>' +
+                '<span class="skill-meta">' + e.count + ' repos · ⭐ ' + e.stars + ' · 由真实仓库数据计算</span>' +
+              '</div>';
+          }).join('');
+
+          // 重新挂载进度条动画：原来的 IntersectionObserver 已经 unobserve 过了
+          var io = new IntersectionObserver(function(ents) {
+            ents.forEach(function(en) {
+              if (!en.isIntersecting) return;
+              var bars = en.target.querySelectorAll('[data-width]');
+              for (var i = 0; i < bars.length; i++) {
+                (function(bar, delay) {
+                  setTimeout(function() { bar.style.width = bar.dataset.width + '%'; }, delay * 80);
+                })(bars[i], i);
+              }
+              io.unobserve(en.target);
+            });
+          });
+          io.observe(grid);
+        }
+
         function hslToHex(h, s, l) {
           s /= 100;
           l /= 100;
@@ -1406,6 +1475,7 @@ const profile = {
 
           updateStatsSection(user, totalCommits, activeDays, streak);
           updateBattleLog(repos);
+          updateWeaponLoadout(repos);
           recordStarCount();
 
           // Expose computed data for the new feature modules (State Lens / Achievements / etc.)
