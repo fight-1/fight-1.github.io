@@ -37,16 +37,6 @@
   var animFrame = null;
   var dpr = window.devicePixelRatio || 1;
 
-  // ---- Easter egg states ----
-  var easterEggMode = 'none'; // 'none' | 'flame' | 'text'
-  var easterEggTimer = null;
-  var easterEggDuration = 8000; // 8 seconds
-  var typedBuffer = '';
-  var lastIdleTime = Date.now();
-  var idleThreshold = 60000; // 60 seconds
-  var textFormation = false;
-  var textTargets = [];
-
   // Theme-specific configurations
   var themes = {
     mirror: {
@@ -97,43 +87,6 @@
     return 'hsla(' + hue + ', 80%, 68%, ' + alpha + ')';
   }
 
-  // Flame color function
-  function getFlameColor(alpha, idx) {
-    var t = (Date.now() * 0.003 + idx * 0.1) % 1;
-    var r = Math.floor(255);
-    var g = Math.floor(100 + 155 * (1 - t));
-    var b = Math.floor(50 * (1 - t));
-    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
-  }
-
-  // Scan target points for text formation (simplified "fight-1")
-  function getTextTargets(text, spacing) {
-    var offscreen = document.createElement('canvas');
-    var offCtx = offscreen.getContext('2d');
-    var fontSize = Math.min(120, window.innerWidth / (text.length + 2));
-    offscreen.width = window.innerWidth;
-    offscreen.height = 200;
-    offCtx.clearRect(0, 0, offscreen.width, offscreen.height);
-    offCtx.fillStyle = 'white';
-    offCtx.font = 'bold ' + fontSize + 'px Inter, sans-serif';
-    offCtx.textAlign = 'center';
-    offCtx.textBaseline = 'middle';
-    offCtx.fillText(text, offscreen.width / 2, offscreen.height / 2);
-
-    var imageData = offCtx.getImageData(0, 0, offscreen.width, offscreen.height);
-    var targets = [];
-
-    for (var y = 0; y < offscreen.height; y += spacing) {
-      for (var x = 0; x < offscreen.width; x += spacing) {
-        var i = (y * offscreen.width + x) * 4;
-        if (imageData.data[i] > 128) {
-          targets.push({ x: x, y: y });
-        }
-      }
-    }
-    return targets;
-  }
-
   function resize() {
     var parent = canvas.parentElement;
     var w = parent ? parent.clientWidth : window.innerWidth;
@@ -173,10 +126,6 @@
         pinX: 0,
         pinY: 0,
         pinTimer: 0,
-        targetX: 0,
-        targetY: 0,
-        hasTarget: false,
-        flamePhase: Math.random() * Math.PI * 2,
       });
     }
   }
@@ -185,29 +134,11 @@
     var cfg = themes[theme];
     var dAlpha = Math.min(1, p.opacity * p.depthOpacity); // 远处更暗
     var sz = p.size * p.depth;                             // 远处更小
-    var color;
-
-    if (easterEggMode === 'flame') {
-      color = getFlameColor(dAlpha * 0.8, p.idx);
-    } else {
-      color = cfg.colorFn(dAlpha * 0.8, p.idx);
-    }
+    var color = cfg.colorFn(dAlpha * 0.8, p.idx);
 
     ctx.save();
 
-    if (easterEggMode === 'flame') {
-      // Flame particles: elongated upward, shimmering
-      var flicker = Math.sin(Date.now() * 0.01 + p.flamePhase) * 2;
-      var grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sz * 2);
-      grad.addColorStop(0, getFlameColor(dAlpha, p.idx));
-      grad.addColorStop(0.5, getFlameColor(dAlpha * 0.5, p.idx + 5));
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      // Elongate upward
-      ctx.ellipse(p.x, p.y - 3 + flicker, sz * 0.6, sz * 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (theme === 'mirror') {
+    if (theme === 'mirror') {
       // Sharp diamond shapes
       ctx.translate(p.x, p.y);
       ctx.rotate(Math.PI / 4);
@@ -266,11 +197,6 @@
   function drawConnections(theme) {
     var cfg = themes[theme];
 
-    if (easterEggMode === 'flame') {
-      // Flame: no connections, just individual particles
-      return;
-    }
-
     // ---- 空间网格：把 O(n^2) 降到接近 O(n) ----
     var cell = CONNECTION_DISTANCE;
     var W = canvas.width / dpr, H = canvas.height / dpr;
@@ -310,14 +236,8 @@
               if (d < CONNECTION_DISTANCE) {
                 var depthFade = (pa.depthOpacity + p2.depthOpacity) / 2;
                 var alpha = (1 - d / CONNECTION_DISTANCE) * 0.12 * depthFade;
-                var color;
                 var i2 = here[a];
-
-                if (easterEggMode === 'text') {
-                  color = 'rgba(255, 215, 0, ' + alpha + ')';
-                } else {
-                  color = cfg.colorFn(alpha, i2 + j);
-                }
+                var color = cfg.colorFn(alpha, i2 + j);
 
                 ctx.save();
                 ctx.strokeStyle = color;
@@ -356,26 +276,9 @@
     if (mouseX < -100 || mouseY < -100) return;
 
     ctx.save();
-    var color;
+    var color = cfg.colorFn(0.15);
 
-    if (easterEggMode === 'flame') {
-      color = 'rgba(255, 150, 0, 0.15)';
-    } else {
-      color = cfg.colorFn(0.15);
-    }
-
-    if (easterEggMode === 'flame') {
-      // Flame: fire trail behind cursor
-      var trailLen = 30;
-      var grad = ctx.createLinearGradient(mouseX - trailLen, mouseY, mouseX + trailLen, mouseY);
-      grad.addColorStop(0, 'rgba(255, 50, 0, 0)');
-      grad.addColorStop(0.5, 'rgba(255, 150, 0, 0.08)');
-      grad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.ellipse(mouseX, mouseY, trailLen, 20, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (theme === 'mirror') {
+    if (theme === 'mirror') {
       // Sharp triangle cursor
       ctx.translate(mouseX, mouseY);
       ctx.rotate(-Math.PI / 4);
@@ -420,7 +323,6 @@
 
   // ---- Click sparks ----
   function spawnClickSparks(x, y, theme) {
-    if (easterEggMode === 'flame') return; // No sparks in flame mode
     var count = theme === 'version' ? 16 : theme === 'mirror' ? 12 : 20;
     for (var i = 0; i < count; i++) {
       clickSparks.push({
@@ -496,122 +398,66 @@
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
-      if (easterEggMode === 'flame') {
-        // ---- FLAME MODE ----
-        // Particles float upward like flames with random turbulence
-        p.vy -= 0.05 + Math.random() * 0.08;
-        p.vx += (Math.random() - 0.5) * 0.3;
-        p.vy *= 0.98;
-        p.vx *= 0.98;
+      var dx = mouseX - p.x;
+      var dy = mouseY - p.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (p.x < 0) p.x = w;
-        if (p.x > w) p.x = 0;
-        if (p.y < -10) {
-          p.y = h + 10;
-          p.x = Math.random() * w;
-        }
-      } else if (easterEggMode === 'text') {
-        // ---- TEXT FORMATION MODE ----
-        if (!p.hasTarget) {
-          // Find nearest unassigned target
-          var bestDist = Infinity;
-          var bestIdx = -1;
-          for (var j = 0; j < textTargets.length; j++) {
-            if (textTargets[j].assigned) continue;
-            var d = Math.sqrt((p.x - textTargets[j].x) ** 2 + (p.y - textTargets[j].y) ** 2);
-            if (d < bestDist) {
-              bestDist = d;
-              bestIdx = j;
-            }
+      if (currentTheme === 'mirror' && dist < MOUSE_RADIUS) {
+        var force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.03;
+        p.vx -= dx * force;
+        p.vy -= dy * force;
+      } else if (currentTheme === 'version' && dist < MOUSE_RADIUS) {
+        if (dist < 20) {
+          if (!p.pinned) {
+            p.pinX = p.x;
+            p.pinY = p.y;
+            p.pinned = true;
           }
-          if (bestIdx !== -1) {
-            textTargets[bestIdx].assigned = true;
-            p.targetX = textTargets[bestIdx].x;
-            p.targetY = textTargets[bestIdx].y;
-            p.hasTarget = true;
+          p.pinTimer++;
+          p.x = p.pinX + (Math.random() - 0.5) * 2;
+          p.y = p.pinY + (Math.random() - 0.5) * 2;
+          p.vx = 0;
+          p.vy = 0;
+          if (p.pinTimer > 60 + Math.random() * 30) {
+            p.pinned = false;
+            p.pinTimer = 0;
+            p.vx = (Math.random() - 0.5) * cfg.speed;
+            p.vy = (Math.random() - 0.5) * cfg.speed;
+          }
+        } else if (dist < 60) {
+          var angle = Math.atan2(dy, dx);
+          var orbitSpeed = 0.02 * (1 - dist / 60);
+          p.vx += Math.cos(angle + Math.PI / 2) * orbitSpeed;
+          p.vy += Math.sin(angle + Math.PI / 2) * orbitSpeed;
+          p.vx -= dx * 0.0003;
+          p.vy -= dy * 0.0003;
+        } else if (dist < MOUSE_RADIUS) {
+          var gridSize = 20;
+          if (!p.pinned) {
+            p.vx += Math.round(p.vx / (gridSize / 10)) * (gridSize / 10) * 0.02;
+            p.vy += Math.round(p.vy / (gridSize / 10)) * (gridSize / 10) * 0.02;
           }
         }
-
-        if (p.hasTarget) {
-          // Ease toward target
-          var tdx = p.targetX - p.x;
-          var tdy = p.targetY - p.y;
-          p.vx += tdx * 0.04;
-          p.vy += tdy * 0.04;
-          p.vx *= 0.85;
-          p.vy *= 0.85;
-        } else {
-          // Idle floating
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vx *= cfg.drag;
-          p.vy *= cfg.drag;
-          if (p.x < 0 || p.x > w) p.vx *= -1;
-          if (p.y < 0 || p.y > h) p.vy *= -1;
-        }
-      } else {
-        // ---- NORMAL MODE (per theme) ----
-        var dx = mouseX - p.x;
-        var dy = mouseY - p.y;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (currentTheme === 'mirror' && dist < MOUSE_RADIUS) {
-          var force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.03;
-          p.vx -= dx * force;
-          p.vy -= dy * force;
-        } else if (currentTheme === 'version' && dist < MOUSE_RADIUS) {
-          if (dist < 20) {
-            if (!p.pinned) {
-              p.pinX = p.x;
-              p.pinY = p.y;
-              p.pinned = true;
-            }
-            p.pinTimer++;
-            p.x = p.pinX + (Math.random() - 0.5) * 2;
-            p.y = p.pinY + (Math.random() - 0.5) * 2;
-            p.vx = 0;
-            p.vy = 0;
-            if (p.pinTimer > 60 + Math.random() * 30) {
-              p.pinned = false;
-              p.pinTimer = 0;
-              p.vx = (Math.random() - 0.5) * cfg.speed;
-              p.vy = (Math.random() - 0.5) * cfg.speed;
-            }
-          } else if (dist < 60) {
-            var angle = Math.atan2(dy, dx);
-            var orbitSpeed = 0.02 * (1 - dist / 60);
-            p.vx += Math.cos(angle + Math.PI / 2) * orbitSpeed;
-            p.vy += Math.sin(angle + Math.PI / 2) * orbitSpeed;
-            p.vx -= dx * 0.0003;
-            p.vy -= dy * 0.0003;
-          } else if (dist < MOUSE_RADIUS) {
-            var gridSize = 20;
-            if (!p.pinned) {
-              p.vx += Math.round(p.vx / (gridSize / 10)) * (gridSize / 10) * 0.02;
-              p.vy += Math.round(p.vy / (gridSize / 10)) * (gridSize / 10) * 0.02;
-            }
-          }
-        } else if (currentTheme === 'loop' && dist < MOUSE_RADIUS) {
-          var force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.005;
-          p.vx += dx * force;
-          p.vy += dy * force;
-        }
-
-        if (currentTheme === 'loop') {
-          p.x += Math.sin(Date.now() * 0.001 + p.phase) * 0.2;
-          p.y += Math.cos(Date.now() * 0.0013 + p.phase) * 0.2;
-        }
-
-        p.x += p.vx * p.drift;
-        p.y += p.vy * p.drift;
-        p.vx *= cfg.drag;
-        p.vy *= cfg.drag;
-
-        if (p.x < 0) p.x = w;
-        if (p.x > w) p.x = 0;
-        if (p.y < 0) p.y = h;
-        if (p.y > h) p.y = 0;
+      } else if (currentTheme === 'loop' && dist < MOUSE_RADIUS) {
+        var force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.005;
+        p.vx += dx * force;
+        p.vy += dy * force;
       }
+
+      if (currentTheme === 'loop') {
+        p.x += Math.sin(Date.now() * 0.001 + p.phase) * 0.2;
+        p.y += Math.cos(Date.now() * 0.0013 + p.phase) * 0.2;
+      }
+
+      p.x += p.vx * p.drift;
+      p.y += p.vy * p.drift;
+      p.vx *= cfg.drag;
+      p.vy *= cfg.drag;
+
+      if (p.x < 0) p.x = w;
+      if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h;
+      if (p.y > h) p.y = 0;
     }
 
     drawConnections(currentTheme);
@@ -626,125 +472,9 @@
     animFrame = requestAnimationFrame(animate);
   }
 
-  // ---- Easter egg activation ----
-  function activateFlame() {
-    if (easterEggTimer) clearTimeout(easterEggTimer);
-    easterEggMode = 'flame';
-
-    // Visual feedback: brief screen flash
-    var flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,100,0,0.15);z-index:9999;pointer-events:none;animation:fadeInUp 0.2s ease both;';
-    document.body.appendChild(flash);
-    setTimeout(function() {
-      flash.style.transition = 'opacity 0.5s';
-      flash.style.opacity = '0';
-      setTimeout(function() { flash.remove(); }, 500);
-    }, 300);
-
-    // Update theme label
-    var hintEl = document.querySelector('.theme-label-hint');
-    if (hintEl) {
-      hintEl.textContent = '🔥 Flame mode!';
-      setTimeout(function() { hintEl.textContent = '🔥 Press T to switch'; }, 3000);
-    }
-
-    easterEggTimer = setTimeout(function() {
-      easterEggMode = 'none';
-      // Reinit particles to normal
-      var theme = document.documentElement.getAttribute('data-theme') || 'mirror';
-      initParticles(theme);
-    }, easterEggDuration);
-  }
-
-  function activateTextFormation() {
-    if (easterEggTimer) clearTimeout(easterEggTimer);
-    easterEggMode = 'text';
-    textTargets = getTextTargets('fight-1', 8);
-    textFormation = true;
-
-    // Brief flash
-    var flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,215,0,0.08);z-index:9999;pointer-events:none;';
-    document.body.appendChild(flash);
-    setTimeout(function() {
-      flash.style.transition = 'opacity 0.8s';
-      flash.style.opacity = '0';
-      setTimeout(function() { flash.remove(); }, 800);
-    }, 400);
-
-    var hintEl = document.querySelector('.theme-label-hint');
-    if (hintEl) {
-      hintEl.textContent = '📝 Text mode!';
-      setTimeout(function() { hintEl.textContent = '📝 Press T to switch'; }, 3000);
-    }
-
-    easterEggTimer = setTimeout(function() {
-      easterEggMode = 'none';
-      textFormation = false;
-      textTargets = [];
-      for (var i = 0; i < textTargets.length; i++) textTargets[i].assigned = false;
-      var theme = document.documentElement.getAttribute('data-theme') || 'mirror';
-      initParticles(theme);
-    }, easterEggDuration);
-  }
-
-  function resetIdleTimer() {
-    lastIdleTime = Date.now();
-    if (easterEggMode === 'text') {
-      // User interacted, cancel text formation
-      if (easterEggTimer) clearTimeout(easterEggTimer);
-      easterEggMode = 'none';
-      textFormation = false;
-      textTargets = [];
-      for (var i = 0; i < textTargets.length; i++) {
-        if (textTargets[i]) textTargets[i].assigned = false;
-      }
-      var theme = document.documentElement.getAttribute('data-theme') || 'mirror';
-      initParticles(theme);
-    }
-  }
-
-  // ---- Input buffer for "fight" ----
-  document.addEventListener('keydown', function(e) {
-    // Track typed characters (only alphanumeric)
-    if (e.key.length === 1) {
-      typedBuffer += e.key.toLowerCase();
-      if (typedBuffer.length > 20) {
-        typedBuffer = typedBuffer.slice(-20);
-      }
-    }
-
-    // Check for "fight"
-    if (typedBuffer.indexOf('fight') !== -1 && easterEggMode !== 'flame') {
-      activateFlame();
-      typedBuffer = '';
-    }
-
-    // Clean buffer: if it doesn't contain "fight" as substring anymore
-    // Actually just keep checking
-    if (!typedBuffer.includes('fight')) {
-      // Check if last chars still have potential
-      var last5 = typedBuffer.slice(-5);
-      if (last5.length > 0 && !last5.startsWith('f')) {
-        typedBuffer = '';
-      }
-    }
-  });
-
-  // ---- Idle detection ----
-  function checkIdle() {
-    if (easterEggMode !== 'none' && easterEggMode !== 'text') return;
-    var idle = Date.now() - lastIdleTime;
-    if (idle >= idleThreshold) {
-      activateTextFormation();
-    }
-    requestAnimationFrame(checkIdle);
-  }
-
   document.addEventListener('mousemove', function(e) {
     mouseX = e.clientX;
     mouseY = e.clientY;
-    resetIdleTimer();
   });
 
   document.addEventListener('mousedown', function() {
@@ -757,11 +487,7 @@
 
   document.addEventListener('click', function(e) {
     spawnClickSparks(e.clientX, e.clientY, currentTheme);
-    resetIdleTimer();
   });
-
-  document.addEventListener('keydown', resetIdleTimer);
-  document.addEventListener('scroll', resetIdleTimer);
 
   window.addEventListener('themeChanged', function() {
     var newTheme = document.documentElement.getAttribute('data-theme') || 'mirror';
@@ -774,18 +500,11 @@
   window.addEventListener('resize', function() {
     resize();
     initParticles(currentTheme);
-    // Rebuild text targets if active
-    if (easterEggMode === 'text') {
-      textTargets = getTextTargets('fight-1', 8);
-    }
   });
 
   resize();
   currentTheme = document.documentElement.getAttribute('data-theme') || 'mirror';
   initParticles(currentTheme);
   animate();
-
-  // Start idle checker
-  requestAnimationFrame(checkIdle);
 })();
 </script>
