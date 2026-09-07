@@ -66,7 +66,8 @@
     var y = -80 - Math.random() * 140;
     // 与竖直方向成约 18~33 度角滑落
     var angle = (fromLeft ? 1 : -1) * (0.32 + Math.random() * 0.26);
-    var speed = 4 + Math.random() * 5;
+    var z = 0.5 + Math.random() * 0.85;       // 2.5D 深度：0.5~1.35
+    var speed = (4 + Math.random() * 5) * z;
     var chars = [];
     for (var c = 0; c < 8; c++) chars.push(randChar());
 
@@ -75,7 +76,8 @@
       y: y,
       vx: Math.sin(angle) * speed,
       vy: Math.cos(angle) * speed,
-      len: 100 + Math.random() * 150,
+      len: (100 + Math.random() * 150) * z,
+      z: z,
       life: 1,
       decay: 0.0035 + Math.random() * 0.004,
       chars: chars,
@@ -87,8 +89,9 @@
 
   function scheduleSpawn() {
     clearTimeout(spawnTimer);
-    var base = isNarrow ? 4200 : 2000;
-    var jitter = isNarrow ? 4200 : 3200;
+    // 频率提高：桌面约 0.8~2s 一颗，移动端约 2.4~4.2s
+    var base = isNarrow ? 2400 : 800;
+    var jitter = isNarrow ? 1800 : 1200;
     spawnTimer = setTimeout(function() {
       spawn();
       scheduleSpawn();
@@ -146,7 +149,7 @@
       g.addColorStop(0, 'rgba(0,243,255,0)');
       g.addColorStop(1, 'rgba(0,243,255,' + (0.55 * alpha).toFixed(3) + ')');
       ctx.strokeStyle = g;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * m.z;
       ctx.beginPath();
       ctx.moveTo(tx, ty);
       ctx.lineTo(m.x, m.y);
@@ -154,7 +157,7 @@
 
       // 洋红偏移，做出色差/故障感
       ctx.strokeStyle = 'rgba(255,0,255,' + (0.22 * alpha).toFixed(3) + ')';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 * m.z;
       ctx.beginPath();
       ctx.moveTo(tx + 2, ty);
       ctx.lineTo(m.x + 2, m.y);
@@ -165,13 +168,14 @@
       ctx.rotate(Math.atan2(uy, ux));
       ctx.fillStyle = 'rgba(210,255,255,' + (0.95 * alpha).toFixed(3) + ')';
       ctx.shadowColor = '#00f3ff';
-      ctx.shadowBlur = 12;
-      ctx.fillRect(-3, -3, 6, 6);
+      ctx.shadowBlur = 12 * m.z;
+      ctx.fillRect(-3 * m.z, -3 * m.z, 6 * m.z, 6 * m.z);
       ctx.restore();
     } else if (theme === 'version') {
       // 终端字符雨：头部字符 + 渐隐字符拖尾
       ctx.save();
-      ctx.font = '14px "JetBrains Mono", "Fira Code", monospace';
+      var fs = Math.max(9, 14 * m.z);
+      ctx.font = fs + 'px "JetBrains Mono", "Fira Code", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       var steps = m.chars.length - 1;
@@ -197,14 +201,14 @@
       g2.addColorStop(0.6, 'rgba(200,140,255,' + (0.3 * alpha).toFixed(3) + ')');
       g2.addColorStop(1, 'rgba(235,215,255,' + (0.62 * alpha).toFixed(3) + ')');
       ctx.strokeStyle = g2;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3 * m.z;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(tx, ty);
       ctx.lineTo(m.x, m.y);
       ctx.stroke();
 
-      var r = 2.5;
+      var r = 2.5 * m.z;
       var rg = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 4);
       rg.addColorStop(0, 'rgba(255,240,255,' + alpha.toFixed(3) + ')');
       rg.addColorStop(1, 'rgba(180,120,255,0)');

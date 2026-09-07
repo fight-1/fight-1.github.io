@@ -755,6 +755,9 @@ const profile = {
           });
 
           document.addEventListener('keydown', function(e) {
+            // 焦点在输入框/可编辑区域时，不拦截按键（避免误触主题切换彩蛋）
+            var t = e.target;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
             if (e.key === 't' || e.key === 'T') {
               currentIndex = (currentIndex + 1) % THEMES.length;
               applyTheme(THEMES[currentIndex]);
@@ -1226,9 +1229,14 @@ const profile = {
           // 任何手动改色都关闭自动轮换，避免被定时器覆盖
           window.addEventListener('manualColorChange', function() { setAuto(false); });
 
-          if (autoOn) {
-            var t0 = curTheme();
+          // 初始化即应用当前主题记下的方案（默认 idx 0），无需访客手动点选
+          // 但若该主题已有访客保存过的自定义配色，则尊重之、不覆盖
+          var t0 = curTheme();
+          var stored = JSON.parse(localStorage.getItem('fight1-colors') || '{}');
+          if (!stored[t0]) {
             applyPalette(t0, listFor(t0)[idx[t0] || 0], false);
+          }
+          if (autoOn) {
             timer = setInterval(advance, PALETTE_AUTO_INTERVAL);
           }
 
@@ -1594,15 +1602,38 @@ const profile = {
           c.style.cssText = 'position:fixed;inset:0;z-index:9990;pointer-events:none;';
           document.body.appendChild(c);
           var ctx = c.getContext('2d');
-          function resize() { var d = window.devicePixelRatio || 1; c.width = innerWidth * d; c.height = innerHeight * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+          var dpr = window.devicePixelRatio || 1;
+          function resize() {
+            dpr = window.devicePixelRatio || 1;
+            c.width = Math.floor(innerWidth * dpr);
+            c.height = Math.floor(innerHeight * dpr);
+            c.style.width = innerWidth + 'px';
+            c.style.height = innerHeight + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          }
           resize();
           window.addEventListener('resize', resize);
           var parts = [];
+          var mx = -1, my = -1, pmx = -1, pmy = -1;
           document.addEventListener('mousemove', function(e) {
-            parts.push({ x: e.clientX, y: e.clientY, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, life: 1, size: 2 + Math.random() * 3, color: getAccent() });
-            if (parts.length > 120) parts.shift();
+            mx = e.clientX; my = e.clientY;
           });
+          function spawnAt(x, y) {
+            parts.push({ x: x, y: y, vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25, life: 1, size: 2 + Math.random() * 3, color: getAccent() });
+            if (parts.length > 140) parts.shift();
+          }
           function loop() {
+            // 每帧在光标当前位置精确生成最新粒子，并对快速移动做插值补点 → 头部永远贴在光标上，无偏移
+            if (mx >= 0) {
+              if (pmx < 0) { pmx = mx; pmy = my; }
+              var dx = mx - pmx, dy = my - pmy;
+              var dist = Math.sqrt(dx * dx + dy * dy);
+              var steps = Math.min(10, Math.max(1, Math.floor(dist / 6)));
+              for (var s = 1; s <= steps; s++) {
+                spawnAt(pmx + dx * (s / steps), pmy + dy * (s / steps));
+              }
+              pmx = mx; pmy = my;
+            }
             ctx.clearRect(0, 0, innerWidth, innerHeight);
             for (var i = parts.length - 1; i >= 0; i--) {
               var p = parts[i];

@@ -50,7 +50,7 @@
   // Theme-specific configurations
   var themes = {
     mirror: {
-      count: 80,
+      count: 100,
       connectionDist: 120,
       mouseRadius: 180,
       colorFn: getMirrorColor,
@@ -61,7 +61,7 @@
       drag: 0.995,
     },
     version: {
-      count: 50,
+      count: 70,
       connectionDist: 130,
       mouseRadius: 150,
       colorFn: getVersionColor,
@@ -72,7 +72,7 @@
       drag: 0.98,
     },
     loop: {
-      count: 100,
+      count: 130,
       connectionDist: 140,
       mouseRadius: 200,
       colorFn: getLoopColor,
@@ -154,6 +154,7 @@
     MOUSE_RADIUS = cfg.mouseRadius;
     particles = [];
     for (var i = 0; i < PARTICLE_COUNT; i++) {
+      var z = Math.random();              // 0=远, 1=近
       particles.push({
         x: Math.random() * w,
         y: Math.random() * h,
@@ -163,6 +164,11 @@
         opacity: Math.random() * 0.5 + 0.2,
         idx: i,
         phase: Math.random() * Math.PI * 2,
+        // ---- 2.5D 深度字段 ----
+        z: z,
+        depth: 0.4 + z * 1.15,            // 近大远小：0.4 ~ 1.55
+        depthOpacity: 0.4 + 0.6 * z,      // 近亮远暗：0.4 ~ 1.0
+        drift: 0.5 + z * 0.7,             // 视差：近的动得快
         pinned: false,
         pinX: 0,
         pinY: 0,
@@ -177,12 +183,14 @@
 
   function drawThemeDot(p, theme) {
     var cfg = themes[theme];
+    var dAlpha = Math.min(1, p.opacity * p.depthOpacity); // 远处更暗
+    var sz = p.size * p.depth;                             // 远处更小
     var color;
 
     if (easterEggMode === 'flame') {
-      color = getFlameColor(p.opacity * 0.8, p.idx);
+      color = getFlameColor(dAlpha * 0.8, p.idx);
     } else {
-      color = cfg.colorFn(p.opacity * 0.8, p.idx);
+      color = cfg.colorFn(dAlpha * 0.8, p.idx);
     }
 
     ctx.save();
@@ -190,14 +198,14 @@
     if (easterEggMode === 'flame') {
       // Flame particles: elongated upward, shimmering
       var flicker = Math.sin(Date.now() * 0.01 + p.flamePhase) * 2;
-      var grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2);
-      grad.addColorStop(0, getFlameColor(p.opacity, p.idx));
-      grad.addColorStop(0.5, getFlameColor(p.opacity * 0.5, p.idx + 5));
+      var grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sz * 2);
+      grad.addColorStop(0, getFlameColor(dAlpha, p.idx));
+      grad.addColorStop(0.5, getFlameColor(dAlpha * 0.5, p.idx + 5));
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
       // Elongate upward
-      ctx.ellipse(p.x, p.y - 3 + flicker, p.size * 0.6, p.size * 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x, p.y - 3 + flicker, sz * 0.6, sz * 2, 0, 0, Math.PI * 2);
       ctx.fill();
     } else if (theme === 'mirror') {
       // Sharp diamond shapes
@@ -206,12 +214,12 @@
       ctx.fillStyle = color;
       if (cfg.glow) {
         ctx.shadowColor = color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 10 * p.depth;
       }
-      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.fillRect(-sz / 2, -sz / 2, sz, sz);
     } else if (theme === 'version') {
       // Terminal block with cross-hair detail
-      var s = p.size;
+      var s = sz;
       ctx.fillStyle = color;
       ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
       // Cross-hair detail
@@ -243,12 +251,12 @@
       ctx.stroke();
     } else {
       // Soft circles with gradient
-      var grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-      grad.addColorStop(0, cfg.colorFn(p.opacity, p.idx));
+      var grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sz);
+      grad.addColorStop(0, cfg.colorFn(dAlpha, p.idx));
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -263,51 +271,81 @@
       return;
     }
 
+    // ---- 空间网格：把 O(n^2) 降到接近 O(n) ----
+    var cell = CONNECTION_DISTANCE;
+    var W = canvas.width / dpr, H = canvas.height / dpr;
+    var cols = Math.max(1, Math.ceil(W / cell));
+    var rows = Math.max(1, Math.ceil(H / cell));
+    var grid = [];
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
-      for (var j = i + 1; j < particles.length; j++) {
-        var p2 = particles[j];
-        var dx = p.x - p2.x;
-        var dy = p.y - p2.y;
-        var d = Math.sqrt(dx * dx + dy * dy);
+      var cx = Math.min(cols - 1, Math.max(0, Math.floor(p.x / cell)));
+      var cy = Math.min(rows - 1, Math.max(0, Math.floor(p.y / cell)));
+      var key = cy * cols + cx;
+      (grid[key] || (grid[key] = [])).push(i);
+    }
 
-        if (d < CONNECTION_DISTANCE) {
-          var alpha = (1 - d / CONNECTION_DISTANCE) * 0.12;
-          var color;
+    // 只查同格 + 右/左下/下/右下 四个邻格，避免重复配对
+    var NEIGH = [[0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+    for (var gy = 0; gy < rows; gy++) {
+      for (var gx = 0; gx < cols; gx++) {
+        var here = grid[gy * cols + gx];
+        if (!here) continue;
+        for (var n = 0; n < NEIGH.length; n++) {
+          var nx = gx + NEIGH[n][0], ny = gy + NEIGH[n][1];
+          if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+          var other = grid[ny * cols + nx];
+          if (!other) continue;
+          var sameCell = (n === 0);
+          for (var a = 0; a < here.length; a++) {
+            var pa = particles[here[a]];
+            for (var c2 = 0; c2 < other.length; c2++) {
+              if (sameCell && other[c2] <= here[a]) continue;
+              var j = other[c2];
+              var p2 = particles[j];
+              var dx = pa.x - p2.x;
+              var dy = pa.y - p2.y;
+              var d = Math.sqrt(dx * dx + dy * dy);
 
-          if (easterEggMode === 'text') {
-            // Text mode: golden/white connections
-            color = 'rgba(255, 215, 0, ' + alpha + ')';
-          } else {
-            color = cfg.colorFn(alpha, i + j);
+              if (d < CONNECTION_DISTANCE) {
+                var depthFade = (pa.depthOpacity + p2.depthOpacity) / 2;
+                var alpha = (1 - d / CONNECTION_DISTANCE) * 0.12 * depthFade;
+                var color;
+                var i2 = here[a];
+
+                if (easterEggMode === 'text') {
+                  color = 'rgba(255, 215, 0, ' + alpha + ')';
+                } else {
+                  color = cfg.colorFn(alpha, i2 + j);
+                }
+
+                ctx.save();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = cfg.lineWidth;
+
+                if (theme === 'mirror') {
+                  ctx.beginPath();
+                  ctx.moveTo(pa.x, pa.y);
+                  ctx.lineTo(p2.x, p2.y);
+                  ctx.stroke();
+                } else if (theme === 'version') {
+                  ctx.beginPath();
+                  ctx.moveTo(pa.x, pa.y);
+                  ctx.lineTo(p2.x, pa.y);
+                  ctx.lineTo(p2.x, p2.y);
+                  ctx.stroke();
+                } else {
+                  ctx.beginPath();
+                  var midX = (pa.x + p2.x) / 2 + Math.sin(pa.phase + Date.now() * 0.001) * 20;
+                  var midY = (pa.y + p2.y) / 2 + Math.cos(pa.phase + Date.now() * 0.001) * 20;
+                  ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
+                  ctx.stroke();
+                }
+
+                ctx.restore();
+              }
+            }
           }
-
-          ctx.save();
-          ctx.strokeStyle = color;
-          ctx.lineWidth = cfg.lineWidth;
-
-          if (theme === 'mirror') {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          } else if (theme === 'version') {
-            // PCB-style angular lines
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          } else {
-            // Curved lines
-            ctx.beginPath();
-            var midX = (p.x + p2.x) / 2 + Math.sin(p.phase + Date.now() * 0.001) * 20;
-            var midY = (p.y + p2.y) / 2 + Math.cos(p.phase + Date.now() * 0.001) * 20;
-            ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
-            ctx.stroke();
-          }
-
-          ctx.restore();
         }
       }
     }
@@ -564,8 +602,8 @@
           p.y += Math.cos(Date.now() * 0.0013 + p.phase) * 0.2;
         }
 
-        p.x += p.vx;
-        p.y += p.vy;
+        p.x += p.vx * p.drift;
+        p.y += p.vy * p.drift;
         p.vx *= cfg.drag;
         p.vy *= cfg.drag;
 

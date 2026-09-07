@@ -50,6 +50,7 @@
 
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var isNarrow = window.innerWidth < 768;
   var W = 0, H = 0;
   var stars = [];       // 星座星点（优先来自真实仓库）
   var links = [];       // 连线缓存
@@ -78,6 +79,7 @@
   function resize() {
     W = window.innerWidth;
     H = window.innerHeight;
+    isNarrow = W < 768;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     canvas.style.width = W + 'px';
@@ -121,7 +123,7 @@
     b.restore();
 
     // 带上的尘埃星点（越靠近带中线越密）
-    var dust = Math.round((W * H) / 5200);
+    var dust = Math.round((W * H) / (isNarrow ? 8200 : 5200));
     for (var d = 0; d < dust; d++) {
       var x = Math.random() * bandW;
       var y = Math.random() * bandH;
@@ -145,7 +147,7 @@
     if (repos && repos.length) {
       var maxStar = 1;
       repos.forEach(function(r) { if ((r.stargazers_count || 0) > maxStar) maxStar = r.stargazers_count; });
-      var use = repos.slice(0, 46);
+      var use = repos.slice(0, isNarrow ? 24 : 46);
       use.forEach(function(r, i) {
         list.push({
           name: r.name,
@@ -162,7 +164,7 @@
     }
 
     // 补一些程序化星点，保证任意数据情况下天空都不空
-    var filler = Math.max(18, 46 - list.length);
+    var filler = Math.max(isNarrow ? 14 : 18, (isNarrow ? 34 : 46) - list.length);
     for (var f = 0; f < filler; f++) {
       list.push({
         name: '', url: '', stars: 0, lang: '',
@@ -193,7 +195,7 @@
 
   function buildLinks() {
     links = [];
-    var maxD = Math.min(W, H) * 0.24;
+    var maxD = Math.min(W, H) * (isNarrow ? 0.20 : 0.24);
     for (var i = 0; i < stars.length; i++) {
       for (var j = i + 1; j < stars.length; j++) {
         var a = stars[i], b = stars[j];
@@ -230,7 +232,7 @@
     for (var l = 0; l < links.length; l++) {
       var ln = links[l];
       var sa = stars[ln.a], sb = stars[ln.b];
-      var base = (1 - ln.d / ln.maxD) * 0.16;
+      var base = (1 - ln.d / ln.maxD) * 0.07;
       var boost = boostAt(sa.px, sa.py) + boostAt(sb.px, sb.py);
       var alpha = Math.min(0.75, base + boost * 0.5);
       if (alpha <= 0.012) continue;
