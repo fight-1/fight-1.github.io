@@ -44,6 +44,8 @@
     return GLYPHS.charAt(Math.floor(Math.random() * GLYPHS.length));
   }
 
+  var lastEmit = 0;
+
   function resize() {
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
@@ -96,6 +98,7 @@
   function loop() {
     raf = requestAnimationFrame(loop);
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    var now = Date.now();
 
     for (var i = meteors.length - 1; i >= 0; i--) {
       var m = meteors[i];
@@ -108,6 +111,13 @@
         continue;
       }
       drawMeteor(m);
+      // 广播位置，让 GalaxyLayer 点亮途经的星座（限流 ~90ms 一次）
+      if (now - lastEmit > 90) {
+        lastEmit = now;
+        try {
+          window.dispatchEvent(new CustomEvent('meteorMove', { detail: { x: m.x, y: m.y } }));
+        } catch (err) {}
+      }
     }
 
     // 没有流星就彻底停掉 rAF，空闲时不占 CPU

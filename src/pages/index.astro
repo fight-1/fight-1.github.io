@@ -5,6 +5,7 @@
 // Real data integration
 // =========================================
 import '../styles/global.css';
+import GalaxyLayer from '../components/GalaxyLayer.astro';
 import MeteorLayer from '../components/MeteorLayer.astro';
 import ParticleBackground from '../components/ParticleBackground.astro';
 import ThemeIndicator from '../components/ThemeIndicator.astro';
@@ -253,6 +254,9 @@ const profile = {
   <body class="min-h-screen">
     <!-- Cursor Glow Effect -->
     <div class="cursor-glow" aria-hidden="true"></div>
+
+    <!-- Galaxy band + constellation (data-driven) -->
+    <GalaxyLayer />
 
     <!-- Meteor / falling layer (per-theme) -->
     <MeteorLayer />
@@ -1485,6 +1489,7 @@ const profile = {
           state.activeDays = activeDays;
           state.user = user;
           state.repos = repos;
+          window.__ghRepos = repos; // 供 GalaxyLayer 直接读取（防止它初始化晚于数据到达）
           window.dispatchEvent(new CustomEvent('ghDataReady', {
             detail: { user: user, repos: repos, dayMap: dayMap, streak: streak, totalCommits: totalCommits, activeDays: activeDays }
           }));
