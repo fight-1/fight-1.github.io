@@ -13,7 +13,7 @@ permissions:
 jobs:
   github-metrics:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       # ---------- Primary Metrics ----------
@@ -30,19 +30,21 @@ jobs:
           plugins_commits_annual_cutoff: yes
           plugins_commits_history: yes
           plugins_commits_dates: yes
-          plugins_commits_limits: 40
+          plugins_commits_limits: 20
 
           # Plugin: Repositories
           plugins_repos: yes
           plugins_repos_featured: self-refactor-core, pixel-forge, data-nexus
           plugins_repos_pinned: 4
           plugins_repos_stargazers: yes
+          plugins_repos_limit: 12
 
           # Plugin: Languages
+          # NOTE: indepth=no 使用 GitHub API 公开统计，不 clone 仓库，避免超时
           plugins_languages: yes
-          plugins_languages_indepth: yes
+          plugins_languages_indepth: no
           plugins_languages_limit: 8
-          plugins_languages_threshold: 0%
+          plugins_languages_threshold: 2%
 
           # Plugin: GitHub Stats
           plugins_github: yes
@@ -59,11 +61,12 @@ jobs:
           plugins_github_issues_limit: 4
 
           # Plugin: GitHub Skyline
+          # NOTE: 关闭 animation，静态 Skyline 极大降低 Rendering 阶段负载
           plugins_github_skinny: yes
           plugins_github_skyline_daily: yes
           plugins_github_skyline_monthly: no
-          plugins_github_skyline_animation: yes
-          plugins_github_skyframe_count: 10
+          plugins_github_skyline_animation: no
+          plugins_github_skyframe_count: 6
 
           # Plugin: Social
           plugins_social: yes
