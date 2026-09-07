@@ -2,6 +2,7 @@
 // =========================================
 // GitHubData.astro — SPA Component
 // Fetches and renders real GitHub data
+// Theme-specific chart rendering
 // =========================================
 
 // CSS is embedded as a template string and injected via client script
@@ -19,7 +20,7 @@
 (function() {
   var USERNAME = 'fight-1';
 
-  // Inject styles
+  // Inject styles — theme-specific rendering
   var css = [
     '.github-data-container{width:100%;position:relative}',
     '.github-loading{text-align:center;padding:3rem;color:var(--text-muted);font-family:var(--font-mono);font-size:0.85rem}',
@@ -38,7 +39,7 @@
     '.contrib-chart svg,.star-chart svg{min-width:100%}',
     '.language-chart{display:flex;justify-content:center;overflow-x:auto;padding:0.5rem 0}',
     '.language-chart svg{max-width:100%}',
-    '@media(max-width:768px){.data-grid{grid-template-columns:1fr}}',
+    '@media(max-width:768px){.data-grid{grid-template-columns:fr}}',
   ].join('\n');
 
   var styleEl = document.createElement('style');
@@ -48,24 +49,29 @@
   var container = document.querySelector('.github-data-container');
   if (!container) return;
 
-  // ---- Chart rendering helpers ----
+  // Cache of last rendered real data (for theme-change re-renders)
+  var lastContributions = null;
+  var lastStarHistory = null;
+
+  // ---- Theme-aware rendering ----
 
   function getThemeColors(theme) {
     var colors = {
-      mirror: ['#0d1117','#00f3ff','#ff00ff'],
-      version: ['#0d1117','#00ff88','#ffaa00'],
-      loop: ['#0d1117','#b478ff','#78b4ff'],
+      mirror: { primary: '#00f3ff', secondary: '#ff00ff', bg: '#0d1117' },
+      version: { primary: '#00ff88', secondary: '#ffaa00', bg: '#0a0e0a' },
+      loop: { primary: '#b478ff', secondary: '#78b4ff', bg: '#0d0a14' },
     };
     return colors[theme] || colors.mirror;
   }
 
   function getContribLevels(theme) {
     var c = getThemeColors(theme);
-    return [c[0], c[1] + '22', c[1] + '55', c[1] + '88', c[1]];
+    return [c.bg, c.primary + '22', c.primary + '55', c.primary + '88', c.primary];
   }
 
   function renderContribHeatmap(container, days, theme) {
     var levels = getContribLevels(theme);
+    var cfg = themes[theme] || themes.mirror;
     var cols = 52;
     var total = days.length;
     var rows = 7;
@@ -82,9 +88,27 @@
         var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', String(col * 15));
         rect.setAttribute('y', String(row * 15 + 10));
-        rect.setAttribute('width', '13');
-        rect.setAttribute('height', '13');
-        rect.setAttribute('rx', '2');
+
+        // Theme-specific cell shapes
+        if (theme === 'mirror') {
+          // Sharp squares
+          rect.setAttribute('width', '13');
+          rect.setAttribute('height', '13');
+          rect.setAttribute('rx', '0');
+        } else if (theme === 'version') {
+          // Small dots
+          rect.setAttribute('width', '10');
+          rect.setAttribute('height', '10');
+          rect.setAttribute('x', String(col * 15 + 2));
+          rect.setAttribute('y', String(row * 15 + 12));
+          rect.setAttribute('rx', '0');
+        } else {
+          // Rounded circles
+          rect.setAttribute('width', '13');
+          rect.setAttribute('height', '13');
+          rect.setAttribute('rx', '6');
+        }
+
         rect.setAttribute('fill', levels[day.level]);
         if (day.date) {
           rect.setAttribute('data-date', day.date);
@@ -136,7 +160,19 @@
       var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', d);
       path.setAttribute('fill', lang.color);
-      path.setAttribute('opacity', '0.85');
+
+      if (theme === 'mirror') {
+        path.setAttribute('opacity', '0.9');
+        path.setAttribute('stroke', 'rgba(0,0,0,0.3)');
+        path.setAttribute('stroke-width', '1');
+      } else if (theme === 'version') {
+        path.setAttribute('opacity', '0.7');
+        path.setAttribute('stroke', 'rgba(0,255,136,0.2)');
+        path.setAttribute('stroke-width', '0.5');
+      } else {
+        path.setAttribute('opacity', '0.85');
+      }
+
       svg.appendChild(path);
       startAngle = endAngle;
     }
@@ -172,7 +208,11 @@
         r.setAttribute('y', String(legendY));
         r.setAttribute('width', '10');
         r.setAttribute('height', '10');
-        r.setAttribute('rx', '2');
+        if (theme === 'loop') {
+          r.setAttribute('rx', '5');
+        } else {
+          r.setAttribute('rx', '1');
+        }
         r.setAttribute('fill', lang.color);
         return r;
       }());
@@ -198,8 +238,18 @@
   }
 
   function renderStarChart(container, stars, theme) {
-    if (stars.length < 2) {
-      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">Not enough data yet</p>';
+    if (stars.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No stars yet — go get some!</p>';
+      return;
+    }
+    if (stars.length === 1) {
+      // Single real data point — show as badge
+      var colorMap0 = { mirror: '#00f3ff', version: '#00ff88', loop: '#b478ff' };
+      var c0 = colorMap0[theme] || colorMap0.mirror;
+      container.innerHTML = '<div style="display:flex;align-items:center;gap:1rem;padding:1rem 0;">' +
+        '<span style="font-size:2.5rem;font-weight:700;color:' + c0 + ';font-family:var(--font-mono);">' + stars[0].count + '</span>' +
+        '<span style="color:var(--text-secondary);font-size:0.85rem;">total stars · tracking started ' + new Date().toLocaleDateString('en', { month: 'short', day: 'numeric' }) + '</span>' +
+        '</div>';
       return;
     }
 
@@ -219,12 +269,6 @@
         y: pad.t + cH - ((stars[i].count - minV) / range) * cH,
       });
     }
-
-    var pathD = '';
-    for (var i = 0; i < points.length; i++) {
-      pathD += (i === 0 ? 'M' : 'L') + ' ' + points[i].x + ' ' + points[i].y + ' ';
-    }
-    var areaD = pathD + 'L ' + points[points.length - 1].x + ' ' + (pad.t + cH) + ' L ' + points[0].x + ' ' + (pad.t + cH) + ' Z';
 
     var colorMap = { mirror: '#00f3ff', version: '#00ff88', loop: '#b478ff' };
     var color = colorMap[theme] || colorMap.mirror;
@@ -255,24 +299,70 @@
     defs.appendChild(grad);
     svg.appendChild(defs);
 
+    var areaD, lineD;
+
+    if (theme === 'mirror') {
+      // Sharp angular line
+      var linePath = '';
+      for (var i = 0; i < points.length; i++) {
+        linePath += (i === 0 ? 'M' : 'L') + ' ' + points[i].x + ' ' + points[i].y + ' ';
+      }
+      lineD = linePath;
+      areaD = linePath + 'L ' + points[points.length - 1].x + ' ' + (pad.t + cH) + ' L ' + points[0].x + ' ' + (pad.t + cH) + ' Z';
+    } else if (theme === 'version') {
+      // Step-style line (like a histogram)
+      var stepPath = 'M' + points[0].x + ' ' + points[0].y;
+      for (var i = 1; i < points.length; i++) {
+        stepPath += ' L ' + points[i].x + ' ' + points[i - 1].y + ' L ' + points[i].x + ' ' + points[i].y;
+      }
+      lineD = stepPath;
+      areaD = stepPath + ' L ' + points[points.length - 1].x + ' ' + (pad.t + cH) + ' L ' + points[0].x + ' ' + (pad.t + cH) + ' Z';
+    } else {
+      // Smooth bezier curve
+      var smoothPath = 'M' + points[0].x + ' ' + points[0].y;
+      for (var i = 0; i < points.length - 1; i++) {
+        var cp1x = points[i].x + (points[i + 1].x - points[i].x) / 3;
+        var cp1y = points[i].y;
+        var cp2x = points[i + 1].x - (points[i + 1].x - points[i].x) / 3;
+        var cp2y = points[i + 1].y;
+        smoothPath += ' C' + cp1x + ',' + cp1y + ' ' + cp2x + ',' + cp2y + ' ' + points[i + 1].x + ' ' + points[i + 1].y;
+      }
+      lineD = smoothPath;
+      areaD = smoothPath + ' L ' + points[points.length - 1].x + ' ' + (pad.t + cH) + ' L ' + points[0].x + ' ' + (pad.t + cH) + ' Z';
+    }
+
     var area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     area.setAttribute('d', areaD);
     area.setAttribute('fill', 'url(#sg-' + theme + ')');
     svg.appendChild(area);
 
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    line.setAttribute('d', pathD);
+    line.setAttribute('d', lineD);
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', color);
-    line.setAttribute('stroke-width', '2');
-    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('stroke-linecap', theme === 'mirror' ? 'miter' : theme === 'version' ? 'bevel' : 'round');
+    if (theme === 'version') {
+      line.setAttribute('stroke-dasharray', 'none');
+      line.setAttribute('stroke-width', '2');
+    } else if (theme === 'mirror') {
+      line.setAttribute('stroke-width', '2');
+    } else {
+      line.setAttribute('stroke-width', '2.5');
+    }
     svg.appendChild(line);
 
     for (var i = 0; i < points.length; i++) {
       var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       dot.setAttribute('cx', String(points[i].x));
       dot.setAttribute('cy', String(points[i].y));
-      dot.setAttribute('r', '3');
+      if (theme === 'mirror') {
+        dot.setAttribute('r', '2.5');
+      } else if (theme === 'version') {
+        dot.setAttribute('r', '2');
+        dot.setAttribute('rx', '0');
+      } else {
+        dot.setAttribute('r', '3.5');
+      }
       dot.setAttribute('fill', color);
       svg.appendChild(dot);
     }
@@ -295,6 +385,13 @@
     container.innerHTML = '';
     container.appendChild(svg);
   }
+
+  // Theme configurations for chart rendering
+  var themes = {
+    mirror: { cellStyle: 'sharp', lineStyle: 'angular' },
+    version: { cellStyle: 'dot', lineStyle: 'step' },
+    loop: { cellStyle: 'rounded', lineStyle: 'smooth' },
+  };
 
   // ---- Data fetching ----
 
@@ -440,8 +537,46 @@
     return stats;
   }
 
+  // Star history: real tracked data (localStorage) + current count
+  // Each visit records the current total star count once per day
   async function getStarHistoryData() {
-    return genStarHistory();
+    // Compute current total stars from real repo data
+    var repos = await getReposData();
+    var totalStars = 0;
+    for (var i = 0; i < repos.length; i++) totalStars += repos[i].stargazers_count || 0;
+
+    // Record today's star count (once per day)
+    var history = [];
+    try {
+      var stored = localStorage.getItem('gh_star_history');
+      history = stored ? JSON.parse(stored) : [];
+    } catch(e) { history = []; }
+
+    var today = new Date().toISOString().split('T')[0];
+    var last = history[history.length - 1];
+    if (!last || last.date !== today) {
+      history.push({ date: today, count: totalStars });
+      if (history.length > 365) history = history.slice(-365);
+      try { localStorage.setItem('gh_star_history', JSON.stringify(history)); } catch(e) {}
+    } else {
+      // Update today's count (star count may have changed since first visit today)
+      last.count = totalStars;
+    }
+
+    // If we have 2+ data points, return real tracked history
+    if (history.length >= 2) {
+      return history.map(function(h) {
+        return { year: parseInt(h.date.slice(0, 4)), month: parseInt(h.date.slice(5, 7)) - 1, count: h.count };
+      });
+    }
+
+    // First visit: show a single data point (real current star count)
+    if (totalStars > 0) {
+      return [{ year: new Date().getFullYear(), month: new Date().getMonth(), count: totalStars }];
+    }
+
+    // No stars at all — show empty state via empty array
+    return [];
   }
 
   async function getStatsData() {
@@ -461,12 +596,12 @@
     for (var i = 0; i < contribs.length; i++) totalCommits += contribs[i].count;
 
     return {
-      totalCommits: totalCommits || 2847,
+      totalCommits: totalCommits,
       totalStars: totalStars,
-      followerCount: user.followers || 42,
-      followingCount: user.following || 37,
-      langCount: Object.keys(langSet).length || 8,
-      contributionCount: contribs.filter(function(d) { return d.count > 0; }).length || 365,
+      followerCount: user.followers || 0,
+      followingCount: user.following || 0,
+      langCount: Object.keys(langSet).length,
+      contributionCount: contribs.filter(function(d) { return d.count > 0; }).length,
     };
   }
 
@@ -489,6 +624,10 @@
       var languages = results[2].value;
       var starHistory = results[3].value;
 
+      // Cache real data for theme-change re-renders
+      if (Array.isArray(contributions)) lastContributions = contributions;
+      if (Array.isArray(starHistory)) lastStarHistory = starHistory;
+
       var html = '<div class="github-data-section">';
 
       // Stats Row
@@ -500,7 +639,7 @@
         html += '<div class="stat-item"><div class="stat-item-value">' + stats.totalStars + '</div><div class="stat-item-label">Stars</div></div>';
         html += '<div class="stat-item"><div class="stat-item-value">' + stats.followerCount + '</div><div class="stat-item-label">Followers</div></div>';
         html += '<div class="stat-item"><div class="stat-item-value">' + stats.langCount + '</div><div class="stat-item-label">Languages</div></div>';
-        html += '<div class="stat-item"><div class="stat-item-value">' + stats.contributionCount + '</div><div class="stat-item-label">Day Streak</div></div>';
+        html += '<div class="stat-item"><div class="stat-item-value">' + stats.contributionCount + '</div><div class="stat-item-label">Active Days</div></div>';
         html += '</div></div>';
       }
 
@@ -527,6 +666,21 @@
       container.innerHTML = '<div class="github-error">Failed to load data: ' + err.message + '</div>';
     }
   }
+
+  // Re-render charts on theme change (reuse cached real data)
+  window.addEventListener('themeChanged', function() {
+    var newTheme = document.documentElement.getAttribute('data-theme') || 'mirror';
+
+    var contribEl = document.getElementById('contrib-chart');
+    if (contribEl && lastContributions && lastContributions.length > 0) {
+      renderContribHeatmap(contribEl, lastContributions, newTheme);
+    }
+
+    var starEl = document.getElementById('star-chart');
+    if (starEl && lastStarHistory) {
+      renderStarChart(starEl, lastStarHistory, newTheme);
+    }
+  });
 
   loadAll();
 })();

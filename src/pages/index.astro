@@ -2,19 +2,16 @@
 // =========================================
 // Fight-1 — Main Page
 // Tri-State Self: Mirror | Version | Loop
+// Real data integration
 // =========================================
 import '../styles/global.css';
 import ParticleBackground from '../components/ParticleBackground.astro';
 import ThemeIndicator from '../components/ThemeIndicator.astro';
 import GitHubData from '../components/GitHubData.astro';
 
-// Content data — edit these to customize
+// Content data — static text only
 const profile = {
-  name: 'fight-1',
-  tagline: 'Me against Me, for Me.',
-  taglineShort: 'Self vs Self. Evolution guaranteed.',
   location: 'Earth, Milky Way',
-  available: true,
   about: [
     'Treat myself as an open-source project — always iterating, never finished.',
     'Today I beat yesterday\'s limits. Tomorrow, I push further.',
@@ -52,7 +49,7 @@ const profile = {
       name: 'self-refactor-core',
       description: 'The internal framework. Refactoring my own patterns, one habit at a time.',
       tags: ['life', 'philosophy', 'iterative'],
-      status: 'wip', // wip | won | learned | loss
+      status: 'wip',
       stars: '∞',
       updated: 'Just now',
     },
@@ -89,14 +86,6 @@ const profile = {
       updated: '2026-01-05',
     },
   ],
-  stats: {
-    commits: 2847,
-    contributions: 365,
-    languages: 8,
-    linesOfCode: '1.2M',
-    currentStreak: '42 days',
-    longestStreak: '127 days',
-  },
   philosophy: [
     { title: 'Reflect', icon: '🔄', desc: 'Question assumptions, analyze patterns, understand the why.' },
     { title: 'Build', icon: '🔨', desc: 'Ship things. Imperfect action beats perfect inaction every time.' },
@@ -153,17 +142,20 @@ const profile = {
 
         <!-- Main heading -->
         <h1 class="hero-title animate-fade-in-up" style="animation-delay: 0.1s;">
-          <span class="gradient-text">{profile.name}</span>
+          <span class="gradient-text" id="hero-username"></span>
         </h1>
+
+        <!-- Avatar -->
+        <img id="hero-avatar" src="" alt="" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--accent-1);margin-bottom:1rem;display:none;box-shadow:0 0 20px rgba(0,243,255,0.3);" class="animate-fade-in-up" />
 
         <!-- Tagline -->
         <p class="hero-tagline animate-fade-in-up" style="animation-delay: 0.2s;">
-          {profile.tagline}
+          <span id="hero-tagline">Me against Me, for Me.</span>
         </p>
 
-        <!-- Short description -->
+        <!-- Short description (bio from GitHub) -->
         <p class="hero-desc animate-fade-in-up" style="animation-delay: 0.3s;">
-          {profile.taglineShort}
+          <span id="hero-bio">Self vs Self. Evolution guaranteed.</span>
         </p>
 
         <!-- Theme label -->
@@ -287,11 +279,11 @@ const profile = {
           Battle Log
         </h2>
 
-        <div class="projects-grid section-fade-in">
+        <div class="projects-grid section-fade-in" id="projects-grid">
           {profile.projects.map((project) => (
             <div class="project-card">
               <div class="project-header">
-                <div class="project-icon"></div>
+                <div class="project-icon">📁</div>
                 <div class="project-status-badge status-{project.status}">
                   {project.status === 'won' ? '✓ Won' :
                    project.status === 'learned' ? '⟳ Learned' :
@@ -327,30 +319,30 @@ const profile = {
           Growth Metrics
         </h2>
 
-        <div class="stats-grid section-fade-in">
+        <div class="stats-grid section-fade-in" id="stats-grid">
           <div class="stat-card">
-            <div class="stat-value gradient-text">{profile.stats.commits.toLocaleString()}</div>
-            <div class="stat-label">Commits</div>
+            <div class="stat-value gradient-text" id="stat-commits">—</div>
+            <div class="stat-label">Recent Commits</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value gradient-text">{profile.stats.contributions}</div>
-            <div class="stat-label">Day Contribution Streak</div>
+            <div class="stat-value gradient-text" id="stat-streak">—</div>
+            <div class="stat-label">Active Days</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value gradient-text">{profile.stats.languages}</div>
-            <div class="stat-label">Languages</div>
+            <div class="stat-value gradient-text" id="stat-langs">—</div>
+            <div class="stat-label">Public Repos</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value gradient-text">{profile.stats.linesOfCode}</div>
-            <div class="stat-label">Lines of Code</div>
+            <div class="stat-value gradient-text" id="stat-loc">—</div>
+            <div class="stat-label">Followers</div>
           </div>
           <div class="stat-card stat-card-highlight">
-            <div class="stat-value gradient-text">{profile.stats.currentStreak}</div>
+            <div class="stat-value gradient-text" id="stat-current-streak">—</div>
             <div class="stat-label">Current Streak 🔥</div>
           </div>
           <div class="stat-card stat-card-highlight">
-            <div class="stat-value gradient-text">{profile.stats.longestStreak}</div>
-            <div class="stat-label">Longest Streak</div>
+            <div class="stat-value gradient-text" id="stat-stars">—</div>
+            <div class="stat-label">Total Stars</div>
           </div>
         </div>
       </div>
@@ -368,6 +360,7 @@ const profile = {
               target="_blank"
               rel="noopener"
               class="cta-btn cta-btn-primary"
+              id="cta-github"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -404,7 +397,7 @@ const profile = {
       <div class="container">
         <div class="footer-content">
           <div class="footer-left">
-            <span class="footer-name gradient-text">fight-1</span>
+            <span class="footer-name gradient-text" id="footer-username"></span>
             <span class="footer-sep">·</span>
             <span>Built with Astro + Tailwind</span>
           </div>
@@ -432,6 +425,15 @@ const profile = {
         var idleTimer = null;
         var isIdle = true;
 
+        // Default colors per theme
+        var DEFAULT_COLORS = {
+          mirror: { accent1: '#00f3ff', accent2: '#ff00ff', hue: 270 },
+          version: { accent1: '#00ff88', accent2: '#ffaa00', hue: 160 },
+          loop: { accent1: null, accent2: null, hue: 270 }, // loop uses hue
+        };
+
+        var USERNAME = 'fight-1';
+
         function setInitialState() {
           var stored = localStorage.getItem('fight1-theme');
           if (stored && THEMES.indexOf(stored) !== -1) {
@@ -456,11 +458,42 @@ const profile = {
             dot.classList.toggle('active', dot.dataset.theme === theme);
           });
 
+          // Update custom colors
+          applyCustomColors(theme);
+
           window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: theme } }));
 
           setTimeout(function() {
             document.documentElement.classList.remove('theme-transitioning');
           }, 700);
+        }
+
+        function applyCustomColors(theme) {
+          var stored = localStorage.getItem('fight1-colors');
+          var colors = stored ? JSON.parse(stored) : null;
+          var themeColors = colors ? colors[theme] : null;
+
+          if (!themeColors) {
+            var defaults = DEFAULT_COLORS[theme];
+            if (theme === 'loop') {
+              document.documentElement.style.setProperty('--custom-hue', defaults.hue);
+              document.documentElement.style.setProperty('--accent-1', 'hsl(' + defaults.hue + ', 80%, 68%)');
+              document.documentElement.style.setProperty('--accent-2', 'hsl(' + (defaults.hue + 50) + ', 90%, 72%)');
+            } else {
+              document.documentElement.style.setProperty('--accent-1', defaults.accent1);
+              document.documentElement.style.setProperty('--accent-2', defaults.accent2);
+            }
+            return;
+          }
+
+          if (theme === 'loop') {
+            document.documentElement.style.setProperty('--custom-hue', themeColors.hue);
+            document.documentElement.style.setProperty('--accent-1', 'hsl(' + themeColors.hue + ', 80%, 68%)');
+            document.documentElement.style.setProperty('--accent-2', 'hsl(' + (themeColors.hue + 50) + ', 90%, 72%)');
+          } else {
+            document.documentElement.style.setProperty('--accent-1', themeColors.accent1 || DEFAULT_COLORS[theme].accent1);
+            document.documentElement.style.setProperty('--accent-2', themeColors.accent2 || DEFAULT_COLORS[theme].accent2);
+          }
         }
 
         function startAutoSwitch() {
@@ -552,14 +585,420 @@ const profile = {
           document.querySelectorAll('.footer-theme-label').forEach(function(el) { el.textContent = '● ' + labels[theme]; });
         }
 
-        // Init theme switcher
+        // =========================================
+        // Color Customization Panel
+        // =========================================
+        function initColorPanel() {
+          var panel = document.getElementById('colorPanel');
+          var editBtn = document.querySelector('.theme-edit-btn');
+          var closeBtn = document.querySelector('.color-panel-close');
+          var accent1Input = document.getElementById('colorAccent1');
+          var accent2Input = document.getElementById('colorAccent2');
+          var hueSlider = document.getElementById('colorHue');
+          var hueValue = document.querySelector('.color-hue-value');
+          var hueGroup = document.getElementById('hueGroup');
+          var resetBtn = document.getElementById('colorResetBtn');
+
+          if (!panel || !editBtn) return;
+
+          function openPanel() {
+            var theme = document.documentElement.getAttribute('data-theme');
+            var stored = localStorage.getItem('fight1-colors');
+            var colors = stored ? JSON.parse(stored) : {};
+            var themeColors = colors[theme] || null;
+
+            if (themeColors) {
+              if (theme === 'loop') {
+                accent1Input.value = hslToHex(themeColors.hue || 270, 80, 68);
+                accent2Input.value = hslToHex((themeColors.hue || 270) + 50, 90, 72);
+                hueSlider.value = themeColors.hue || 270;
+                hueValue.textContent = (themeColors.hue || 270) + '°';
+              } else {
+                accent1Input.value = themeColors.accent1 || DEFAULT_COLORS[theme].accent1;
+                accent2Input.value = themeColors.accent2 || DEFAULT_COLORS[theme].accent2;
+              }
+            } else {
+              if (theme === 'loop') {
+                accent1Input.value = hslToHex(DEFAULT_COLORS[theme].hue, 80, 68);
+                accent2Input.value = hslToHex(DEFAULT_COLORS[theme].hue + 50, 90, 72);
+                hueSlider.value = DEFAULT_COLORS[theme].hue;
+                hueValue.textContent = DEFAULT_COLORS[theme].hue + '°';
+              } else {
+                accent1Input.value = DEFAULT_COLORS[theme].accent1;
+                accent2Input.value = DEFAULT_COLORS[theme].accent2;
+              }
+            }
+
+            hueGroup.style.display = theme === 'loop' ? 'block' : 'none';
+            panel.classList.add('open');
+            panel.setAttribute('aria-hidden', 'false');
+          }
+
+          function closePanel() {
+            panel.classList.remove('open');
+            panel.setAttribute('aria-hidden', 'true');
+          }
+
+          function saveColors() {
+            var theme = document.documentElement.getAttribute('data-theme');
+            var stored = localStorage.getItem('fight1-colors');
+            var colors = stored ? JSON.parse(stored) : {};
+            if (theme === 'loop') {
+              colors[theme] = { hue: parseInt(hueSlider.value) };
+            } else {
+              colors[theme] = {
+                accent1: accent1Input.value,
+                accent2: accent2Input.value,
+              };
+            }
+            localStorage.setItem('fight1-colors', JSON.stringify(colors));
+          }
+
+          function updateAccent1Color() {
+            var hex = accent1Input.value;
+            document.querySelector('.color-hex').textContent = hex;
+            document.documentElement.style.setProperty('--accent-1', hex);
+            var r = parseInt(hex.slice(1,3), 16);
+            var g = parseInt(hex.slice(3,5), 16);
+            var b = parseInt(hex.slice(5,7), 16);
+            document.documentElement.style.setProperty('--accent-1-dim', 'rgba(' + r + ', ' + g + ', ' + b + ', 0.15)');
+            saveColors();
+          }
+
+          function updateAccent2Color() {
+            var hex = accent2Input.value;
+            document.documentElement.style.setProperty('--accent-2', hex);
+            var r = parseInt(hex.slice(1,3), 16);
+            var g = parseInt(hex.slice(3,5), 16);
+            var b = parseInt(hex.slice(5,7), 16);
+            document.documentElement.style.setProperty('--accent-2-dim', 'rgba(' + r + ', ' + g + ', ' + b + ', 0.15)');
+            saveColors();
+          }
+
+          function updateHue() {
+            var hue = parseInt(hueSlider.value);
+            hueValue.textContent = hue + '°';
+            var hue2 = (hue + 50) % 360;
+            document.documentElement.style.setProperty('--custom-hue', hue);
+            document.documentElement.style.setProperty('--accent-1', 'hsl(' + hue + ', 80%, 68%)');
+            document.documentElement.style.setProperty('--accent-2', 'hsl(' + hue2 + ', 90%, 72%)');
+
+            accent1Input.value = hslToHex(hue, 80, 68);
+            accent2Input.value = hslToHex(hue2, 90, 72);
+
+            var r1 = Math.round(255 * (0.5 + 0.5 * Math.cos(hue * Math.PI / 180)));
+            var g1 = Math.round(255 * (0.5 + 0.5 * Math.cos((hue - 120) * Math.PI / 180)));
+            var b1 = Math.round(255 * (0.5 + 0.5 * Math.cos((hue + 120) * Math.PI / 180)));
+            document.documentElement.style.setProperty('--accent-1-dim', 'rgba(' + r1 + ', ' + g1 + ', ' + b1 + ', 0.15)');
+
+            var r2 = Math.round(255 * (0.5 + 0.5 * Math.cos(hue2 * Math.PI / 180)));
+            var g2 = Math.round(255 * (0.5 + 0.5 * Math.cos((hue2 - 120) * Math.PI / 180)));
+            var b2 = Math.round(255 * (0.5 + 0.5 * Math.cos((hue2 + 120) * Math.PI / 180)));
+            document.documentElement.style.setProperty('--accent-2-dim', 'rgba(' + r2 + ', ' + g2 + ', ' + b2 + ', 0.15)');
+
+            saveColors();
+          }
+
+          function resetColors() {
+            var theme = document.documentElement.getAttribute('data-theme');
+            var stored = localStorage.getItem('fight1-colors');
+            var colors = stored ? JSON.parse(stored) : {};
+            delete colors[theme];
+            localStorage.setItem('fight1-colors', JSON.stringify(colors));
+            applyCustomColors(theme);
+            openPanel();
+          }
+
+          editBtn.addEventListener('click', openPanel);
+          closeBtn.addEventListener('click', closePanel);
+          accent1Input.addEventListener('input', updateAccent1Color);
+          accent2Input.addEventListener('input', updateAccent2Color);
+          hueSlider.addEventListener('input', updateHue);
+          resetBtn.addEventListener('click', resetColors);
+
+          document.addEventListener('click', function(e) {
+            if (panel.classList.contains('open') &&
+                !panel.contains(e.target) &&
+                !editBtn.contains(e.target)) {
+              closePanel();
+            }
+          });
+
+          document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && panel.classList.contains('open')) {
+              closePanel();
+            }
+          });
+
+          var initTheme = document.documentElement.getAttribute('data-theme');
+          applyCustomColors(initTheme);
+        }
+
+        function hslToHex(h, s, l) {
+          s /= 100;
+          l /= 100;
+          var a = s * Math.min(l, 1 - l);
+          var f = function(n) {
+            var k = (n + h / 30) % 12;
+            var color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            return Math.round(255 * color).toString(16).padStart(2, '0');
+          };
+          return '#' + f(0) + f(8) + f(4);
+        }
+
+        // =========================================
+        // GitHub Real Data Integration
+        // =========================================
+        var GITHUB_API = 'https://api.github.com';
+
+        function cacheGet(key) {
+          try {
+            var item = localStorage.getItem('gh_' + key);
+            if (item) {
+              var parsed = JSON.parse(item);
+              if (Date.now() - parsed.ts < 300000) return parsed.data;
+            }
+          } catch(e) {}
+          return null;
+        }
+
+        function cacheSet(key, data) {
+          try { localStorage.setItem('gh_' + key, JSON.stringify({ data: data, ts: Date.now() })); } catch(e) {}
+        }
+
+        async function ghFetch(url) {
+          var cached = cacheGet(url);
+          if (cached) return cached;
+          try {
+            var ctrl = new AbortController();
+            var t = setTimeout(function() { ctrl.abort(); }, 8000);
+            var resp = await fetch(url, { headers: { Accept: 'application/vnd.github.v3+json' }, signal: ctrl.signal });
+            clearTimeout(t);
+            if (!resp.ok) return null;
+            var data = await resp.json();
+            cacheSet(url, data);
+            return data;
+          } catch(e) { return null; }
+        }
+
+        // Record star count for tracking history
+        function recordStarCount() {
+          try {
+            var stored = localStorage.getItem('gh_star_history');
+            var history = stored ? JSON.parse(stored) : [];
+            var last = history[history.length - 1];
+            var now = new Date().toISOString().split('T')[0];
+            if (!last || last.date !== now) {
+              history.push({ date: now, count: state.totalStars });
+              if (history.length > 365) history = history.slice(-365);
+              localStorage.setItem('gh_star_history', JSON.stringify(history));
+            }
+          } catch(e) {}
+        }
+
+        // Fetch commits from top repos and build daily contribution map
+        async function buildContributionMap(repos) {
+          var dayMap = {};
+          var top = repos.slice(0, 8);
+          var results = await Promise.allSettled(
+            top.map(function(repo) {
+              return ghFetch(GITHUB_API + '/repos/' + repo.full_name + '/commits?per_page=100');
+            })
+          );
+          for (var i = 0; i < results.length; i++) {
+            var commits = results[i].value;
+            if (Array.isArray(commits)) {
+              for (var j = 0; j < commits.length; j++) {
+                var date = commits[j].commit.committer.date.split('T')[0];
+                dayMap[date] = (dayMap[date] || 0) + 1;
+              }
+            }
+          }
+          return dayMap;
+        }
+
+        // Current streak: consecutive days with contributions ending today/yesterday
+        function calcStreak(dayMap) {
+          var streak = 0;
+          var d = new Date();
+          // Allow streak to start today or yesterday
+          var dStr = d.toISOString().split('T')[0];
+          if (!dayMap[dStr]) {
+            var yd = new Date(d.getTime() - 86400000);
+            if (!dayMap[yd.toISOString().split('T')[0]]) return 0;
+            d = yd;
+          }
+          while (dayMap[d.toISOString().split('T')[0]]) {
+            streak++;
+            d = new Date(d.getTime() - 86400000);
+          }
+          return streak;
+        }
+
+        async function fetchProfileData() {
+          var user, repos;
+          try {
+            var results = await Promise.allSettled([
+              ghFetch(GITHUB_API + '/users/' + USERNAME),
+              ghFetch(GITHUB_API + '/users/' + USERNAME + '/repos?type=owner&sort=updated&per_page=30'),
+            ]);
+            user = results[0].value;
+            repos = results[1].value;
+          } catch(e) {
+            user = null;
+            repos = [];
+          }
+
+          if (!Array.isArray(repos)) repos = [];
+          // Exclude forks, sort by stars
+          repos = repos.filter(function(r) { return !r.fork; });
+          repos.sort(function(a, b) { return (b.stargazers_count || 0) - (a.stargazers_count || 0); });
+
+          // Update Hero section
+          var usernameEl = document.getElementById('hero-username');
+          if (usernameEl) usernameEl.textContent = (user && user.login) || USERNAME;
+
+          var avatarEl = document.getElementById('hero-avatar');
+          if (avatarEl && user && user.avatar_url) {
+            avatarEl.src = user.avatar_url;
+            avatarEl.alt = user.login;
+            avatarEl.style.display = 'block';
+          }
+
+          var bioEl = document.getElementById('hero-bio');
+          if (bioEl && user && user.bio) {
+            bioEl.textContent = user.bio;
+          }
+
+          // Update CTA link
+          var ctaEl = document.getElementById('cta-github');
+          if (ctaEl && user && user.html_url) {
+            ctaEl.href = user.html_url;
+          }
+
+          // Update footer username
+          var footerEl = document.getElementById('footer-username');
+          if (footerEl) footerEl.textContent = (user && user.login) || USERNAME;
+
+          // Compute real stats
+          state.totalStars = 0;
+          state.langSet = {};
+          for (var i = 0; i < repos.length; i++) {
+            state.totalStars += repos[i].stargazers_count || 0;
+            if (repos[i].language) {
+              state.langSet[repos[i].language] = (state.langSet[repos[i].language] || 0) + 1;
+            }
+          }
+
+          var dayMap = await buildContributionMap(repos);
+          var totalCommits = 0;
+          var activeDays = 0;
+          for (var key in dayMap) {
+            totalCommits += dayMap[key];
+            activeDays++;
+          }
+          var streak = calcStreak(dayMap);
+
+          updateStatsSection(user, totalCommits, activeDays, streak);
+          updateBattleLog(repos);
+          recordStarCount();
+        }
+
+        function setText(id, value) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = value;
+        }
+
+        function updateStatsSection(user, totalCommits, activeDays, streak) {
+          if (totalCommits > 0) setText('stat-commits', totalCommits.toLocaleString());
+          if (activeDays > 0) setText('stat-streak', activeDays + ' days');
+          if (user && user.public_repos != null) setText('stat-langs', user.public_repos);
+          if (user && user.followers != null) setText('stat-loc', user.followers);
+          setText('stat-current-streak', streak > 0 ? streak + ' days' : '—');
+          setText('stat-stars', state.totalStars > 0 ? String(state.totalStars) : '—');
+        }
+
+        function updateBattleLog(repos) {
+          if (!repos || repos.length === 0) return;
+
+          var grid = document.getElementById('projects-grid');
+          if (!grid) return;
+          grid.innerHTML = '';
+
+          repos.slice(0, 6).forEach(function(repo) {
+            var status = getRepoStatus(repo);
+            var card = document.createElement('div');
+            card.className = 'project-card';
+
+            var statusText = status === 'won' ? '✓ Won' :
+                             status === 'learned' ? '⟳ Learned' :
+                             status === 'loss' ? '✗ Lost' : '◌ WIP';
+
+            var tagsHtml = '';
+            if (repo.topics && repo.topics.length) {
+              tagsHtml = repo.topics.slice(0, 3).map(function(t) {
+                return '<span class="tag">' + t + '</span>';
+              }).join('');
+            } else if (repo.language) {
+              tagsHtml = '<span class="tag">' + repo.language + '</span>';
+            }
+
+            card.innerHTML = '<div class="project-header">' +
+              '<div class="project-icon">📁</div>' +
+              '<div class="project-status-badge status-' + status + '">' + statusText + '</div>' +
+              '</div>' +
+              '<h3 class="project-name"><a href="' + repo.html_url + '" target="_blank" rel="noopener">' + repo.name + '</a></h3>' +
+              '<p class="project-desc">' + (repo.description || 'No description available.') + '</p>' +
+              '<div class="project-tags">' + tagsHtml + '</div>' +
+              '<div class="project-footer">' +
+              '<span class="project-stars">⭐ ' + (repo.stargazers_count || 0) + '</span>' +
+              '<span class="project-updated">Updated ' + formatDate(repo.pushed_at) + '</span>' +
+              '</div>';
+
+            grid.appendChild(card);
+          });
+        }
+
+        function getRepoStatus(repo) {
+          if (repo.stargazers_count > 20) return 'won';
+          if (repo.open_issues_count > repo.stargazers_count) return 'loss';
+          if (repo.stargazers_count > 0) return 'learned';
+          return 'wip';
+        }
+
+        function formatDate(dateStr) {
+          var d = new Date(dateStr);
+          var now = new Date();
+          var diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+          if (diff === 0) return 'Just now';
+          if (diff === 1) return 'Yesterday';
+          if (diff < 30) return diff + ' days ago';
+          if (diff < 365) return Math.floor(diff / 30) + ' months ago';
+          return d.toLocaleDateString('en', { month: 'short', year: 'numeric' });
+        }
+
+        var state = {
+          user: null,
+          repos: [],
+          totalStars: 0,
+          langSet: {},
+          repoCount: 0,
+        };
+
+        // =========================================
+        // Init
+        // =========================================
         setInitialState();
-        applyTheme(THEMES[currentIndex], false);
+        applyTheme(THEMES[currentIndex]);
         startAutoSwitch();
         setupManualControls();
         setupIdleDetection();
         initChaosEasterEgg();
+        initColorPanel();
         updateThemeLabel();
+
+        // Fetch real GitHub data
+        fetchProfileData();
 
         // =========================================
         // Scroll Animations
@@ -592,7 +1031,9 @@ const profile = {
           fadeObserver.observe(el);
         });
 
-        window.addEventListener('themeChanged', updateThemeLabel);
+        window.addEventListener('themeChanged', function() {
+          updateThemeLabel();
+        });
 
         // =========================================
         // Cursor Glow
