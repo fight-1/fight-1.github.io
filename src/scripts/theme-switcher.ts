@@ -177,53 +177,125 @@ function setupScrollLock() {
   });
 }
 
-// ---------- Easter Egg: Chaos Mode ----------
-let chaosClickCount = 0;
-let chaosTimer: ReturnType<typeof setTimeout> | null = null;
+// ---------- Easter Egg: Celebration (fireworks + hearts) ----------
+let celebrateClickCount = 0;
+let celebrateTimer: ReturnType<typeof setTimeout> | null = null;
 
-export function initChaosEasterEgg() {
+export function initCelebrationEasterEgg() {
+  const canvas = document.createElement('canvas');
+  canvas.id = 'celebrateCanvas';
+  canvas.style.cssText = 'position:fixed;inset:0;z-index:9998;pointer-events:none;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const dpr = window.devicePixelRatio || 1;
+  const resize = () => {
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const particles: any[] = [];
+  const hearts: any[] = [];
+  const heartColors = ['#ff5d8f', '#ff8fab', '#ff2d6f', '#ff9ec4', '#ff476f'];
+  let raf: number | null = null;
+
+  const spawnFirework = (x: number, y: number) => {
+    const hue = Math.floor(Math.random() * 360);
+    const count = 42 + Math.floor(Math.random() * 28);
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2) * (i / count) + Math.random() * 0.2;
+      const speed = 2 + Math.random() * 4.5;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1, decay: 0.012 + Math.random() * 0.01,
+        color: `hsl(${hue},90%,${55 + Math.random() * 15}%)`,
+        size: 2 + Math.random() * 2,
+      });
+    }
+  };
+
+  const spawnHeart = (x: number, y: number) => {
+    hearts.push({
+      x, y,
+      vy: -(1 + Math.random() * 1.5),
+      sway: Math.random() * Math.PI * 2,
+      swaySpeed: 0.02 + Math.random() * 0.03,
+      life: 1, decay: 0.006 + Math.random() * 0.004,
+      size: 16 + Math.random() * 18,
+      color: heartColors[Math.floor(Math.random() * heartColors.length)],
+    });
+  };
+
+  const drawHeart = (x: number, y: number, size: number, color: string, alpha: number) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.translate(x, y);
+    ctx.beginPath();
+    const s = size / 16;
+    ctx.moveTo(0, 4 * s);
+    ctx.bezierCurveTo(-8 * s, -4 * s, -8 * s, -10 * s, 0, -4 * s);
+    ctx.bezierCurveTo(8 * s, -10 * s, 8 * s, -4 * s, 0, 4 * s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+
+  const loop = () => {
+    const W = window.innerWidth, H = window.innerHeight;
+    ctx.clearRect(0, 0, W, H);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.vx *= 0.99; p.vy *= 0.99;
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.max(p.life, 0);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    for (let j = hearts.length - 1; j >= 0; j--) {
+      const h = hearts[j];
+      h.sway += h.swaySpeed;
+      h.x += Math.sin(h.sway) * 0.8;
+      h.y += h.vy;
+      h.life -= h.decay;
+      if (h.life <= 0) { hearts.splice(j, 1); continue; }
+      drawHeart(h.x, h.y, h.size, h.color, Math.max(h.life, 0));
+    }
+    if (particles.length > 0 || hearts.length > 0) {
+      raf = requestAnimationFrame(loop);
+    } else {
+      raf = null;
+      ctx.clearRect(0, 0, W, H);
+    }
+  };
+
+  const launch = () => {
+    const W = window.innerWidth, H = window.innerHeight;
+    for (let k = 0; k < 6; k++) {
+      setTimeout(() => spawnFirework(W * (0.15 + Math.random() * 0.7), H * (0.25 + Math.random() * 0.4)), k * 260);
+    }
+    for (let m = 0; m < 16; m++) {
+      spawnHeart(W * Math.random(), H * (0.55 + Math.random() * 0.45));
+    }
+    if (raf === null) loop();
+  };
+
   document.addEventListener('click', () => {
-    chaosClickCount++;
-    if (chaosTimer) clearTimeout(chaosTimer);
-    chaosTimer = setTimeout(() => { chaosClickCount = 0; }, 2000);
-
-    if (chaosClickCount >= 8) {
-      chaosClickCount = 0;
-      triggerChaos();
+    celebrateClickCount++;
+    if (celebrateTimer) clearTimeout(celebrateTimer);
+    celebrateTimer = setTimeout(() => { celebrateClickCount = 0; }, 2000);
+    if (celebrateClickCount >= 8) {
+      celebrateClickCount = 0;
+      launch();
     }
   });
-}
-
-function triggerChaos() {
-  const original = document.documentElement.getAttribute('data-theme') || 'mirror';
-
-  // Rapid theme cycling
-  let flashCount = 0;
-  const interval = setInterval(() => {
-    const randomTheme = THEMES[Math.floor(Math.random() * THEMES.length)];
-    document.documentElement.setAttribute('data-theme', randomTheme);
-    flashCount++;
-    if (flashCount >= 10) {
-      clearInterval(interval);
-      applyTheme(original, true);
-      showChaosMessage();
-    }
-  }, 80);
-}
-
-function showChaosMessage() {
-  const msg = document.createElement('div');
-  msg.style.cssText = `
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    z-index: 10000; font-family: var(--font-mono); font-size: 1.5rem;
-    color: var(--accent-1); text-align: center; pointer-events: none;
-    animation: fadeInUp 0.3s ease both;
-  `;
-  msg.textContent = '⚠ CHAOS MODE — All systems nominal';
-  document.body.appendChild(msg);
-  setTimeout(() => {
-    msg.style.opacity = '0';
-    msg.style.transition = 'opacity 0.5s';
-    setTimeout(() => msg.remove(), 500);
-  }, 2000);
 }

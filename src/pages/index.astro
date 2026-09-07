@@ -547,31 +547,130 @@ const profile = {
           });
         }
 
-        function initChaosEasterEgg() {
+        // =========================================
+        // Celebration: fireworks + hearts (replaces chaos mode)
+        // Trigger: 8 clicks within 2 seconds
+        // =========================================
+        var celebrateCanvas = document.createElement('canvas');
+        celebrateCanvas.id = 'celebrateCanvas';
+        celebrateCanvas.style.cssText = 'position:fixed;inset:0;z-index:9998;pointer-events:none;';
+        document.body.appendChild(celebrateCanvas);
+        var cctx = celebrateCanvas.getContext('2d');
+        var celebrateParticles = [];
+        var celebrateHearts = [];
+        var celebrateRAF = null;
+        var HEART_COLORS = ['#ff5d8f', '#ff8fab', '#ff2d6f', '#ff9ec4', '#ff476f'];
+
+        function resizeCelebrate() {
+          var dpr = window.devicePixelRatio || 1;
+          celebrateCanvas.width = window.innerWidth * dpr;
+          celebrateCanvas.height = window.innerHeight * dpr;
+          cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        resizeCelebrate();
+        window.addEventListener('resize', resizeCelebrate);
+
+        function spawnFirework(x, y) {
+          var hue = Math.floor(Math.random() * 360);
+          var count = 42 + Math.floor(Math.random() * 28);
+          for (var i = 0; i < count; i++) {
+            var angle = (Math.PI * 2) * (i / count) + Math.random() * 0.2;
+            var speed = 2 + Math.random() * 4.5;
+            celebrateParticles.push({
+              x: x, y: y,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              life: 1, decay: 0.012 + Math.random() * 0.01,
+              color: 'hsl(' + hue + ',90%,' + (55 + Math.random() * 15) + '%)',
+              size: 2 + Math.random() * 2,
+            });
+          }
+        }
+
+        function spawnHeart(x, y) {
+          celebrateHearts.push({
+            x: x, y: y,
+            vy: -(1 + Math.random() * 1.5),
+            sway: Math.random() * Math.PI * 2,
+            swaySpeed: 0.02 + Math.random() * 0.03,
+            life: 1, decay: 0.006 + Math.random() * 0.004,
+            size: 16 + Math.random() * 18,
+            color: HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)],
+          });
+        }
+
+        function drawHeart(ctx, x, y, size, color, alpha) {
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = color;
+          ctx.translate(x, y);
+          ctx.beginPath();
+          var s = size / 16;
+          ctx.moveTo(0, 4 * s);
+          ctx.bezierCurveTo(-8 * s, -4 * s, -8 * s, -10 * s, 0, -4 * s);
+          ctx.bezierCurveTo(8 * s, -10 * s, 8 * s, -4 * s, 0, 4 * s);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+
+        function celebrateLoop() {
+          var W = window.innerWidth, H = window.innerHeight;
+          cctx.clearRect(0, 0, W, H);
+          for (var i = celebrateParticles.length - 1; i >= 0; i--) {
+            var p = celebrateParticles[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.vx *= 0.99; p.vy *= 0.99;
+            p.life -= p.decay;
+            if (p.life <= 0) { celebrateParticles.splice(i, 1); continue; }
+            cctx.globalAlpha = Math.max(p.life, 0);
+            cctx.fillStyle = p.color;
+            cctx.beginPath();
+            cctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            cctx.fill();
+          }
+          cctx.globalAlpha = 1;
+          for (var j = celebrateHearts.length - 1; j >= 0; j--) {
+            var h = celebrateHearts[j];
+            h.sway += h.swaySpeed;
+            h.x += Math.sin(h.sway) * 0.8;
+            h.y += h.vy;
+            h.life -= h.decay;
+            if (h.life <= 0) { celebrateHearts.splice(j, 1); continue; }
+            drawHeart(cctx, h.x, h.y, h.size, h.color, Math.max(h.life, 0));
+          }
+          if (celebrateParticles.length > 0 || celebrateHearts.length > 0) {
+            celebrateRAF = requestAnimationFrame(celebrateLoop);
+          } else {
+            celebrateRAF = null;
+            cctx.clearRect(0, 0, W, H);
+          }
+        }
+
+        function launchCelebration() {
+          var W = window.innerWidth, H = window.innerHeight;
+          for (var k = 0; k < 6; k++) {
+            (function(delay) {
+              setTimeout(function() {
+                spawnFirework(W * (0.15 + Math.random() * 0.7), H * (0.25 + Math.random() * 0.4));
+              }, delay);
+            })(k * 260);
+          }
+          for (var m = 0; m < 16; m++) {
+            spawnHeart(W * Math.random(), H * (0.55 + Math.random() * 0.45));
+          }
+          if (!celebrateRAF) celebrateLoop();
+        }
+
+        function initCelebrationEasterEgg() {
           var clickCount = 0;
-          var chaosTimer = null;
+          var celebrateTimer = null;
           document.addEventListener('click', function() {
             clickCount++;
-            if (chaosTimer) clearTimeout(chaosTimer);
-            chaosTimer = setTimeout(function() { clickCount = 0; }, 2000);
+            if (celebrateTimer) clearTimeout(celebrateTimer);
+            celebrateTimer = setTimeout(function() { clickCount = 0; }, 2000);
             if (clickCount >= 8) {
               clickCount = 0;
-              var original = document.documentElement.getAttribute('data-theme') || 'mirror';
-              var flashCount = 0;
-              var interval = setInterval(function() {
-                var randomTheme = THEMES[Math.floor(Math.random() * THEMES.length)];
-                document.documentElement.setAttribute('data-theme', randomTheme);
-                flashCount++;
-                if (flashCount >= 10) {
-                  clearInterval(interval);
-                  applyTheme(original);
-                  var msg = document.createElement('div');
-                  msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;font-family:var(--font-mono);font-size:1.5rem;color:var(--accent-1);text-align:center;pointer-events:none;animation:fadeInUp 0.3s ease both;';
-                  msg.textContent = '⚠ CHAOS MODE — All systems nominal';
-                  document.body.appendChild(msg);
-                  setTimeout(function() { msg.style.opacity = '0'; msg.style.transition = 'opacity 0.5s'; setTimeout(function() { msg.remove(); }, 500); }, 2000);
-                }
-              }, 80);
+              launchCelebration();
             }
           });
         }
@@ -993,7 +1092,7 @@ const profile = {
         startAutoSwitch();
         setupManualControls();
         setupIdleDetection();
-        initChaosEasterEgg();
+        initCelebrationEasterEgg();
         initColorPanel();
         updateThemeLabel();
 
