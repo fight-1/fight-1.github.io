@@ -24,10 +24,6 @@ jobs:
           base: ''
           user: fight-1
           template: card
-          config:
-            base: hack
-            config:
-              quality_warnings: yes
 
           # Plugin: Commits
           plugins_commits: yes
@@ -59,7 +55,7 @@ jobs:
 
           # Plugin: GitHub Issues (Achievements)
           plugins_github_issues: yes
-          plugins_github_issues_reasons: ['active']
+          plugins_github_issues_reasons: active
           plugins_github_issues_limit: 4
 
           # Plugin: GitHub Skyline
@@ -78,4 +74,4 @@ jobs:
         with:
           file_pattern: metrics-*.svg
           commit_message: "📊 Update GitHub metrics dashboard [skip ci]"
-          push_options: [--force]
+          push_options: --force
