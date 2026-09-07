@@ -230,6 +230,19 @@ const profile = {
         .state-lens-panel { grid-template-columns: 1fr; }
         .heatmap { grid-template-columns: repeat(12, 1fr); }
       }
+
+      /* Preset palettes + auto cycle */
+      .color-label-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+      .auto-toggle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: #cbd5e1; cursor: pointer; white-space: nowrap; }
+      .auto-toggle input { accent-color: var(--accent-1); cursor: pointer; }
+      .preset-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; }
+      .preset-swatch { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.4rem;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+        cursor: pointer; transition: all 0.25s; text-align: left; }
+      .preset-swatch:hover { border-color: var(--accent-1); background: rgba(255,255,255,0.06); }
+      .preset-swatch.active { border-color: var(--accent-1); background: rgba(255,255,255,0.08); }
+      .preset-chip { width: 18px; height: 18px; border-radius: 4px; flex: 0 0 auto; box-shadow: 0 0 6px rgba(0,0,0,0.5); }
+      .preset-name { font-size: 0.68rem; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
   </head>
 
@@ -968,6 +981,7 @@ const profile = {
           }
 
           function updateAccent1Color() {
+            window.dispatchEvent(new CustomEvent('manualColorChange'));
             var hex = accent1Input.value;
             document.querySelector('.color-hex').textContent = hex;
             document.documentElement.style.setProperty('--accent-1', hex);
@@ -979,6 +993,7 @@ const profile = {
           }
 
           function updateAccent2Color() {
+            window.dispatchEvent(new CustomEvent('manualColorChange'));
             var hex = accent2Input.value;
             document.documentElement.style.setProperty('--accent-2', hex);
             var r = parseInt(hex.slice(1,3), 16);
@@ -989,6 +1004,7 @@ const profile = {
           }
 
           function updateHue() {
+            window.dispatchEvent(new CustomEvent('manualColorChange'));
             var hue = parseInt(hueSlider.value);
             hueValue.textContent = hue + '°';
             var hue2 = (hue + 50) % 360;
@@ -1013,6 +1029,7 @@ const profile = {
           }
 
           function resetColors() {
+            window.dispatchEvent(new CustomEvent('manualColorChange'));
             var theme = document.documentElement.getAttribute('data-theme');
             var stored = localStorage.getItem('fight1-colors');
             var colors = stored ? JSON.parse(stored) : {};
@@ -1045,6 +1062,178 @@ const profile = {
 
           var initTheme = document.documentElement.getAttribute('data-theme');
           applyCustomColors(initTheme);
+        }
+
+        // =========================================
+        // 内置配色方案 + 自动轮换
+        // 每套主题各有一组方案，可自行随时间演化
+        // =========================================
+        var PALETTES = {
+          mirror: [
+            { name: 'Cyber Cyan',   a1: '#00f3ff', a2: '#ff00ff' },
+            { name: 'Neon Lime',    a1: '#39ff14', a2: '#00e5ff' },
+            { name: 'Blood Orange', a1: '#ff3b3b', a2: '#ffb020' },
+            { name: 'Vaporwave',    a1: '#ff71ce', a2: '#01cdfe' },
+            { name: 'Ice Blue',     a1: '#7df9ff', a2: '#5b5bff' },
+            { name: 'Acid Purple',  a1: '#b026ff', a2: '#00ffa3' }
+          ],
+          version: [
+            { name: 'Terminal Green', a1: '#00ff88', a2: '#ffaa00' },
+            { name: 'Amber CRT',      a1: '#ffb000', a2: '#ff6b00' },
+            { name: 'Phosphor',       a1: '#33ff33', a2: '#00cc66' },
+            { name: 'Console Cyan',   a1: '#00e5ff', a2: '#7cffcb' },
+            { name: 'Paper White',    a1: '#e8e8d3', a2: '#9fb8a8' },
+            { name: 'DOS Blue',       a1: '#5ac8fa', a2: '#a3e635' }
+          ],
+          loop: [
+            { name: 'Violet Dream', hue: 270 },
+            { name: 'Aurora',       hue: 158 },
+            { name: 'Sunset',       hue: 18 },
+            { name: 'Ocean',        hue: 200 },
+            { name: 'Sakura',       hue: 332 },
+            { name: 'Deep Space',   hue: 238 }
+          ]
+        };
+        var PALETTE_AUTO_INTERVAL = 24000;
+
+        function hexToRgbaDim(hex, a) {
+          var r = parseInt(hex.slice(1, 3), 16);
+          var g = parseInt(hex.slice(3, 5), 16);
+          var b = parseInt(hex.slice(5, 7), 16);
+          return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a + ')';
+        }
+
+        function applyPalette(theme, preset, animate) {
+          if (!preset) return;
+          var root = document.documentElement;
+          if (animate) root.classList.add('theme-transitioning');
+
+          if (theme === 'loop') {
+            var hue = preset.hue;
+            var hue2 = (hue + 50) % 360;
+            root.style.setProperty('--custom-hue', hue);
+            root.style.setProperty('--accent-1', 'hsl(' + hue + ', 80%, 68%)');
+            root.style.setProperty('--accent-2', 'hsl(' + hue2 + ', 90%, 72%)');
+          } else {
+            root.style.setProperty('--accent-1', preset.a1);
+            root.style.setProperty('--accent-2', preset.a2);
+            root.style.setProperty('--accent-1-dim', hexToRgbaDim(preset.a1, 0.15));
+            root.style.setProperty('--accent-2-dim', hexToRgbaDim(preset.a2, 0.15));
+          }
+
+          // 复用原有存储结构，保证 applyCustomColors 能读回
+          var colors = JSON.parse(localStorage.getItem('fight1-colors') || '{}');
+          colors[theme] = theme === 'loop' ? { hue: preset.hue } : { accent1: preset.a1, accent2: preset.a2 };
+          localStorage.setItem('fight1-colors', JSON.stringify(colors));
+
+          syncPaletteInputs(theme, preset);
+
+          if (animate) {
+            setTimeout(function() { root.classList.remove('theme-transitioning'); }, 700);
+          }
+        }
+
+        function syncPaletteInputs(theme, preset) {
+          var a1 = document.getElementById('colorAccent1');
+          var a2 = document.getElementById('colorAccent2');
+          var hueS = document.getElementById('colorHue');
+          var hueV = document.querySelector('.color-hue-value');
+          var hexL = document.querySelector('.color-hex');
+          if (theme === 'loop') {
+            if (hueS) hueS.value = preset.hue;
+            if (hueV) hueV.textContent = preset.hue + '°';
+            if (a1) a1.value = hslToHex(preset.hue, 80, 68);
+            if (a2) a2.value = hslToHex((preset.hue + 50) % 360, 90, 72);
+          } else {
+            if (a1) a1.value = preset.a1;
+            if (a2) a2.value = preset.a2;
+          }
+          if (hexL && a1) hexL.textContent = a1.value;
+        }
+
+        function initPaletteSystem() {
+          var grid = document.getElementById('presetGrid');
+          var toggle = document.getElementById('colorAutoToggle');
+          var autoOn = localStorage.getItem('fight1-auto') === '1';
+          var idx = JSON.parse(localStorage.getItem('fight1-auto-idx') || '{"mirror":0,"version":0,"loop":0}');
+          var timer = null;
+
+          function curTheme() {
+            return document.documentElement.getAttribute('data-theme') || 'mirror';
+          }
+          function listFor(t) {
+            return PALETTES[t] || PALETTES.mirror;
+          }
+
+          function renderGrid() {
+            if (!grid) return;
+            var t = curTheme();
+            var list = listFor(t);
+            var active = idx[t] || 0;
+            grid.innerHTML = list.map(function(p, i) {
+              var sw = t === 'loop'
+                ? 'linear-gradient(135deg, hsl(' + p.hue + ',80%,68%), hsl(' + ((p.hue + 50) % 360) + ',90%,72%))'
+                : 'linear-gradient(135deg, ' + p.a1 + ', ' + p.a2 + ')';
+              return '<button type="button" class="preset-swatch' + (i === active ? ' active' : '') + '" data-idx="' + i + '" title="' + p.name + '">' +
+                     '<span class="preset-chip" style="background:' + sw + '"></span>' +
+                     '<span class="preset-name">' + p.name + '</span></button>';
+            }).join('');
+            Array.prototype.forEach.call(grid.querySelectorAll('.preset-swatch'), function(btn) {
+              btn.addEventListener('click', function() {
+                var t2 = curTheme();
+                idx[t2] = parseInt(btn.dataset.idx, 10);
+                localStorage.setItem('fight1-auto-idx', JSON.stringify(idx));
+                setAuto(false); // 手动指定后停止自动轮换
+                applyPalette(t2, listFor(t2)[idx[t2]], true);
+                renderGrid();
+              });
+            });
+          }
+
+          function advance() {
+            var t = curTheme();
+            var list = listFor(t);
+            idx[t] = ((idx[t] || 0) + 1) % list.length;
+            localStorage.setItem('fight1-auto-idx', JSON.stringify(idx));
+            applyPalette(t, list[idx[t]], true);
+            renderGrid();
+          }
+
+          function setAuto(on) {
+            autoOn = on;
+            try { localStorage.setItem('fight1-auto', on ? '1' : '0'); } catch (e) {}
+            if (toggle) toggle.checked = on;
+            if (timer) { clearInterval(timer); timer = null; }
+            if (on) timer = setInterval(advance, PALETTE_AUTO_INTERVAL);
+          }
+
+          if (toggle) {
+            toggle.checked = autoOn;
+            toggle.addEventListener('change', function() {
+              setAuto(toggle.checked);
+              if (toggle.checked) advance();
+            });
+          }
+
+          // 任何手动改色都关闭自动轮换，避免被定时器覆盖
+          window.addEventListener('manualColorChange', function() { setAuto(false); });
+
+          if (autoOn) {
+            var t0 = curTheme();
+            applyPalette(t0, listFor(t0)[idx[t0] || 0], false);
+            timer = setInterval(advance, PALETTE_AUTO_INTERVAL);
+          }
+
+          // 切主题时应用该主题自己记下的方案（不跳号，靠定时器自行演化）
+          window.addEventListener('themeChanged', function() {
+            renderGrid();
+            if (autoOn) {
+              var t = curTheme();
+              applyPalette(t, listFor(t)[idx[t] || 0], true);
+            }
+          });
+
+          renderGrid();
         }
 
         function hslToHex(h, s, l) {
@@ -1722,6 +1911,7 @@ const profile = {
         initShareCard();
         initSaveFile();
         initAchievements();
+        initPaletteSystem();
 
         // Show the offline fallback avatar immediately so it's never blank;
         // fetchProfileData() upgrades it to the real GitHub avatar when available.
