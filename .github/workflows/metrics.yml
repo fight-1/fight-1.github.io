@@ -23,7 +23,8 @@ jobs:
           token: ${{ secrets.METRICS_TOKEN }}
           base: ''
           user: fight-1
-          template: card
+          template: classic
+          filename: metrics-github.svg
 
           # Plugin: Commits
           plugins_commits: yes
@@ -67,9 +68,6 @@ jobs:
           plugins_github_skyline_monthly: no
           plugins_github_skyline_animation: no
           plugins_github_skyframe_count: 6
-
-          # Plugin: Social
-          plugins_social: yes
 
       # ---------- Output ----------
       - name: Commit metrics to repository
