@@ -10,7 +10,7 @@ description: 部署 fight-1 个人主页到 GitHub Pages
 ```bash
 # 在 d:/project/github/fight-1 目录下执行
 git init
-git remote add origin git@github.com:fight-1/fight-1.github.com.git
+git remote add origin git@github.com:fight-1/fight-1.github.io.git
 git add .
 git commit -m "feat: initial deploy"
 git branch -M main
@@ -19,7 +19,7 @@ git push -u origin main
 
 ### 2. 在 GitHub 上启用 Pages
 
-1. 打开 `https://github.com/fight-1/fight-1.github.com`
+1. 打开 `https://github.com/fight-1/fight-1.github.io`
 2. 点 **Settings** → **Pages**
 3. **Source** 选择 `GitHub Actions`
 4. （默认已配置，不需要改）
@@ -36,12 +36,12 @@ git push -u origin main
 ### 4. 等待自动构建
 
 推送后 GitHub Actions 会自动运行：
-- `Build and Deploy to GitHub Pages` → 构建 Astro → 部署到 `https://fight-1.github.com/`
+- `Build and Deploy to GitHub Pages` → 构建 Astro → 部署到 `https://fight-1.github.io/`
 - `GitHub Metrics Dashboard` → 生成 metrics SVG（每周自动更新）
 
 ### 5. 验证
 
-访问 `https://fight-1.github.com/` 应该能看到完整的个人主页。
+访问 `https://fight-1.github.io/` 应该能看到完整的个人主页。
 
 ---
 

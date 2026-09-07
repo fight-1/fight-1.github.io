@@ -119,6 +119,117 @@ const profile = {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <title>Fight-1 — Tri-State Self</title>
+
+    <style is:global>
+      /* ===== New Features (2026-09-07) ===== */
+      .glitch { position: relative; animation: glitchShift 3.6s infinite; }
+      @keyframes glitchShift {
+        0%, 90%, 100% { text-shadow: none; transform: none; }
+        92% { text-shadow: 2px 0 var(--accent-2), -2px 0 var(--accent-1); transform: translateX(1px); }
+        94% { text-shadow: -2px 0 var(--accent-2), 2px 0 var(--accent-1); transform: translateX(-1px); }
+        96% { text-shadow: 2px 0 var(--accent-2), -2px 0 var(--accent-1); transform: translateX(1px); }
+      }
+
+      .section-badge {
+        font-size: 0.6rem; font-family: 'JetBrains Mono', monospace;
+        padding: 0.2rem 0.6rem; border: 1px solid var(--accent-1);
+        border-radius: 999px; color: var(--accent-1); margin-left: 0.6rem; vertical-align: middle;
+        opacity: 0.85;
+      }
+
+      /* State Lens tabs */
+      .state-lens-tabs { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+      .state-lens-tab {
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+        color: #cbd5e1; padding: 0.5rem 1rem; border-radius: 999px; cursor: pointer;
+        font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; transition: all 0.25s;
+      }
+      .state-lens-tab:hover { border-color: var(--accent-1); }
+      .state-lens-tab.active { background: var(--accent-1); color: #0b0b0f; border-color: var(--accent-1); font-weight: 600; }
+      .state-lens-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+      .state-lens-panel[hidden] { display: none; }
+      .lens-col h4, .state-lens-panel h4 { color: #e2e8f0; font-size: 0.95rem; margin-bottom: 0.75rem; font-family: 'Space Grotesk', sans-serif; }
+      .lens-note { color: #64748b; font-size: 0.8rem; margin-top: 0.5rem; }
+      .lens-empty { color: #64748b; font-size: 0.9rem; }
+
+      .heatmap { display: grid; grid-template-columns: repeat(17, 1fr); gap: 3px; }
+      .hm-cell { aspect-ratio: 1; border-radius: 2px; background: rgba(255,255,255,0.05); }
+      .hm-1 { background: rgba(0,243,255,0.3); }
+      .hm-2 { background: rgba(0,243,255,0.5); }
+      .hm-3 { background: rgba(0,243,255,0.72); }
+      .hm-4 { background: var(--accent-1); box-shadow: 0 0 6px var(--accent-1); }
+
+      .lang-row { display: grid; grid-template-columns: 90px 1fr 30px; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
+      .lang-name { color: #cbd5e1; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .lang-bar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+      .lang-fill { height: 100%; background: linear-gradient(90deg, var(--accent-1), var(--accent-2)); border-radius: 999px; }
+      .lang-val { color: #64748b; font-size: 0.75rem; text-align: right; }
+
+      .growth-wrap { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; }
+      .growth-svg { width: 100%; height: 120px; display: block; }
+      .activity-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 320px; overflow-y: auto; }
+      .act-row { display: grid; grid-template-columns: 110px 1fr auto; gap: 0.75rem; align-items: center;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.82rem; }
+      .act-type { color: var(--accent-1); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+      .act-repo { color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .act-when { color: #64748b; font-size: 0.72rem; }
+
+      /* Repo picker + timeline */
+      .repo-picker { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+      .repo-picker input { flex: 1; min-width: 220px; background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12); color: #e2e8f0; padding: 0.6rem 0.9rem; border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+      .repo-picker input:focus { outline: none; border-color: var(--accent-1); }
+      .timeline { position: relative; padding-left: 1.5rem; border-left: 2px solid rgba(255,255,255,0.1); }
+      .tl-item { position: relative; margin-bottom: 1.25rem; }
+      .tl-dot { position: absolute; left: -1.85rem; top: 0.3rem; width: 12px; height: 12px; border-radius: 50%;
+        background: var(--accent-1); box-shadow: 0 0 8px var(--accent-1); }
+      .tl-latest .tl-dot { background: var(--accent-2); box-shadow: 0 0 10px var(--accent-2); }
+      .tl-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.85rem 1rem; }
+      .tl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
+      .tl-ver { color: var(--accent-1); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+      .tl-date { color: #64748b; font-size: 0.75rem; }
+      .tl-body { color: #cbd5e1; font-size: 0.82rem; white-space: pre-wrap; max-height: 140px; overflow: auto; }
+
+      /* Achievements */
+      .badge-wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+      .badge { background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px;
+        padding: 1rem; text-align: center; opacity: 0.45; filter: grayscale(1); transition: all 0.3s; }
+      .badge-on { opacity: 1; filter: none; border-style: solid; border-color: var(--accent-1);
+        box-shadow: 0 0 18px rgba(0,243,255,0.15); background: rgba(0,243,255,0.06); }
+      .badge-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+      .badge-name { color: #e2e8f0; font-weight: 600; font-size: 0.9rem; }
+      .badge-desc { color: #64748b; font-size: 0.72rem; margin-top: 0.25rem; }
+
+      /* NPC bubble */
+      .npc-bubble { position: fixed; left: 50%; bottom: 2rem; transform: translateX(-50%) translateY(20px);
+        background: rgba(10,10,15,0.95); border: 1px solid var(--accent-1); color: #e2e8f0;
+        padding: 0.75rem 1.1rem; border-radius: 12px; max-width: 80vw; font-size: 0.9rem;
+        box-shadow: 0 0 24px rgba(0,243,255,0.2); opacity: 0; pointer-events: none; transition: all 0.35s; z-index: 9997; }
+      .npc-bubble.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      /* Share modal */
+      .share-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; }
+      .share-modal.open { display: flex; }
+      .share-modal-inner { background: #0b0b0f; border: 1px solid var(--accent-1); border-radius: 16px; padding: 1.5rem; text-align: center; position: relative; }
+      .share-modal-inner h3 { color: #e2e8f0; margin-bottom: 1rem; font-family: 'Space Grotesk', sans-serif; }
+      .share-modal-inner canvas { width: 300px; height: auto; border-radius: 8px; max-width: 80vw; }
+      .share-close { position: absolute; top: 0.5rem; right: 0.75rem; background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; }
+      .share-modal-inner .cta-btn { display: inline-block; margin-top: 1rem; }
+
+      /* Toast */
+      .fight-toast { position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%) translateY(-20px);
+        background: rgba(10,10,15,0.95); border: 1px solid var(--accent-2); color: #fff; padding: 0.7rem 1.2rem;
+        border-radius: 10px; font-size: 0.9rem; z-index: 10000; opacity: 0; transition: all 0.35s; box-shadow: 0 0 20px rgba(255,0,255,0.2); }
+      .fight-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      .footer-challenger { color: var(--accent-1); font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; }
+
+      @media (max-width: 768px) {
+        .state-lens-panel { grid-template-columns: 1fr; }
+        .heatmap { grid-template-columns: repeat(12, 1fr); }
+      }
+    </style>
   </head>
 
   <body class="min-h-screen">
@@ -214,7 +325,7 @@ const profile = {
           </div>
 
           <!-- Changelog -->
-          <div class="changelog section-fade-in">
+          <div class="changelog section-fade-in" id="changelog">
             {profile.patchNotes.map((note) => (
               <div class="changelog-entry">
                 <div class="changelog-header">
@@ -356,7 +467,7 @@ const profile = {
           <p>{profile.cta.description}</p>
           <div class="cta-buttons">
             <a
-              href={`https://github.com/${profile.cta.github}`}
+              href="https://fight-1.github.io/"
               target="_blank"
               rel="noopener"
               class="cta-btn cta-btn-primary"
@@ -365,7 +476,7 @@ const profile = {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
               </svg>
-              View on GitHub
+              Visit Site
             </a>
             <a
               href={`mailto:${profile.cta.email}`}
@@ -373,6 +484,8 @@ const profile = {
             >
               ✉ {profile.cta.email}
             </a>
+            <a href="#" id="btn-share" class="cta-btn cta-btn-secondary">📤 Share Card</a>
+            <a href="#" id="btn-save" class="cta-btn cta-btn-secondary">💾 Save File</a>
           </div>
         </div>
       </div>
@@ -392,6 +505,69 @@ const profile = {
       </div>
     </section>
 
+    <!-- ====== STATE LENS (Feature 3: 三态真实视角) ====== -->
+    <section class="state-lens-section" data-lock-theme="mirror">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">07</span>
+          State Lens
+          <span class="section-badge">◈ 三态真实视角</span>
+        </h2>
+        <div class="state-lens-tabs section-fade-in">
+          <button class="state-lens-tab active" data-lens="mirror">◈ Mirror · 贡献热力图</button>
+          <button class="state-lens-tab" data-lens="version">▣ Version · 成长曲线</button>
+          <button class="state-lens-tab" data-lens="loop">∞ Loop · 活动流</button>
+        </div>
+        <div class="state-lens-panel section-fade-in" id="lens-mirror">
+          <div class="lens-col">
+            <h4>贡献热力图（近 119 天 · 来自你的仓库提交）</h4>
+            <div class="heatmap" id="lens-heatmap"></div>
+            <p class="lens-note">颜色越亮 = 当天 commit 越多。需要网络拉取真实数据。</p>
+          </div>
+          <div class="lens-col">
+            <h4>语言占比</h4>
+            <div class="lang-list" id="lens-langs"></div>
+          </div>
+        </div>
+        <div class="state-lens-panel section-fade-in" id="lens-version" hidden>
+          <h4>技能树 / 仓库成长曲线（按创建月份累计）</h4>
+          <div class="growth-wrap" id="lens-growth"></div>
+        </div>
+        <div class="state-lens-panel section-fade-in" id="lens-loop" hidden>
+          <h4>实时活动流（GitHub events）</h4>
+          <div class="activity-list" id="lens-activity"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== RELEASE TIMELINE (Feature 2) ====== -->
+    <section class="release-section" data-lock-theme="version">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">08</span>
+          Release Timeline
+          <span class="section-badge">🔌 真实 Patch Notes</span>
+        </h2>
+        <div class="repo-picker section-fade-in">
+          <input id="repo-input" type="text" value="fight-1/fight-1.github.io" placeholder="owner/repo" />
+          <button id="repo-load" class="cta-btn cta-btn-secondary">Load Releases</button>
+        </div>
+        <div class="timeline section-fade-in" id="release-timeline"></div>
+      </div>
+    </section>
+
+    <!-- ====== ACHIEVEMENTS (Feature 9) ====== -->
+    <section class="achievements-section" data-lock-theme="loop">
+      <div class="container">
+        <h2 class="section-title section-fade-in">
+          <span class="section-number">09</span>
+          Achievements
+          <span class="section-badge">🏆 绑真实事件</span>
+        </h2>
+        <div class="badge-wall section-fade-in" id="badge-wall"></div>
+      </div>
+    </section>
+
     <!-- ====== FOOTER ====== -->
     <footer class="footer">
       <div class="container">
@@ -400,6 +576,8 @@ const profile = {
             <span class="footer-name gradient-text" id="footer-username"></span>
             <span class="footer-sep">·</span>
             <span>Built with Astro + Tailwind</span>
+            <span class="footer-sep">·</span>
+            <span id="challenger-count" class="footer-challenger"></span>
           </div>
           <div class="footer-center">
             <span class="footer-theme-label"></span>
@@ -410,6 +588,19 @@ const profile = {
         </div>
       </div>
     </footer>
+
+    <!-- NPC speech bubble (Feature 7) -->
+    <div id="npc-bubble" class="npc-bubble" aria-live="polite"></div>
+
+    <!-- Share card modal (Feature 5) -->
+    <div id="share-modal" class="share-modal">
+      <div class="share-modal-inner">
+        <button id="share-close" class="share-close" aria-label="Close">×</button>
+        <h3>动态分享卡</h3>
+        <canvas id="share-canvas" width="600" height="315"></canvas>
+        <a id="share-download" class="cta-btn cta-btn-primary" href="#">⬇ 下载 PNG</a>
+      </div>
+    </div>
 
     <!-- ====== SCRIPTS ====== -->
     <script client:load>
@@ -991,10 +1182,10 @@ const profile = {
             bioEl.textContent = user.bio;
           }
 
-          // Update CTA link
+          // Keep the CTA pointing at the live site homepage (https://fight-1.github.io/).
           var ctaEl = document.getElementById('cta-github');
-          if (ctaEl && user && user.html_url) {
-            ctaEl.href = user.html_url;
+          if (ctaEl) {
+            ctaEl.href = 'https://fight-1.github.io/';
           }
 
           // Update footer username
@@ -1023,6 +1214,17 @@ const profile = {
           updateStatsSection(user, totalCommits, activeDays, streak);
           updateBattleLog(repos);
           recordStarCount();
+
+          // Expose computed data for the new feature modules (State Lens / Achievements / etc.)
+          state.dayMap = dayMap;
+          state.streak = streak;
+          state.totalCommits = totalCommits;
+          state.activeDays = activeDays;
+          state.user = user;
+          state.repos = repos;
+          window.dispatchEvent(new CustomEvent('ghDataReady', {
+            detail: { user: user, repos: repos, dayMap: dayMap, streak: streak, totalCommits: totalCommits, activeDays: activeDays }
+          }));
         }
 
         function setText(id, value) {
@@ -1107,6 +1309,394 @@ const profile = {
         };
 
         // =========================================
+        // NEW FEATURES (2026-09-07)
+        // =========================================
+        function getAccent() {
+          return getComputedStyle(document.documentElement).getPropertyValue('--accent-1').trim() || '#00f3ff';
+        }
+        function getAccent2() {
+          return getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim() || '#ff00ff';
+        }
+
+        // ---- Feature 1: Mouse trail (theme-colored particles) ----
+        function initMouseTrail() {
+          if (!window.matchMedia('(pointer: fine)').matches) return;
+          var c = document.createElement('canvas');
+          c.id = 'trailCanvas';
+          c.style.cssText = 'position:fixed;inset:0;z-index:9990;pointer-events:none;';
+          document.body.appendChild(c);
+          var ctx = c.getContext('2d');
+          function resize() { var d = window.devicePixelRatio || 1; c.width = innerWidth * d; c.height = innerHeight * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+          resize();
+          window.addEventListener('resize', resize);
+          var parts = [];
+          document.addEventListener('mousemove', function(e) {
+            parts.push({ x: e.clientX, y: e.clientY, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, life: 1, size: 2 + Math.random() * 3, color: getAccent() });
+            if (parts.length > 120) parts.shift();
+          });
+          function loop() {
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            for (var i = parts.length - 1; i >= 0; i--) {
+              var p = parts[i];
+              p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+              if (p.life <= 0) { parts.splice(i, 1); continue; }
+              ctx.globalAlpha = Math.max(p.life, 0);
+              ctx.fillStyle = p.color;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(loop);
+          }
+          loop();
+        }
+
+        // ---- Feature 8: Hero glitch + rotating slogan ----
+        function initHeroGlitch() {
+          var nameEl = document.getElementById('hero-username');
+          if (nameEl) nameEl.classList.add('glitch');
+          var tag = document.getElementById('hero-tagline');
+          var slogans = [
+            'Me against Me, for Me.',
+            'Ship. Reflect. Evolve.',
+            'Today I beat yesterday.',
+            'A living log of self-improvement.',
+            'Imperfect action > perfect inaction.'
+          ];
+          if (tag) {
+            tag.textContent = slogans[Math.floor(Math.random() * slogans.length)];
+            setInterval(function() {
+              if (document.hidden) return;
+              tag.style.opacity = '0';
+              setTimeout(function() {
+                tag.textContent = slogans[Math.floor(Math.random() * slogans.length)];
+                tag.style.opacity = '1';
+              }, 250);
+            }, 6000);
+          }
+        }
+
+        // ---- Feature 4: Visitor = challenger (localStorage) ----
+        function initChallengerCounter() {
+          var el = document.getElementById('challenger-count');
+          if (!el) return;
+          var n = parseInt(localStorage.getItem('fight1_challengers') || '0', 10);
+          n += 1;
+          try { localStorage.setItem('fight1_challengers', String(n)); } catch (e) {}
+          el.textContent = '⚔ 已迎战 ' + n.toLocaleString() + ' 名挑战者';
+        }
+
+        // ---- Feature 7: Three NPC personas ----
+        var NPC_LINES = {
+          mirror: [
+            '镜灵：你这周只推了 {commits} 次，镜子可不撒谎。',
+            '镜灵：真实数据不会骗人——你离"完美版本"还差得远。',
+            '镜灵：照照看，今天的你比昨天强了吗？'
+          ],
+          version: [
+            '史官：从 {repos} 个仓库看，你的版本号在稳步攀升。',
+            '史官：累计 {stars} 颗星，成长曲线向上，保持。',
+            '史官：新技能树已记录，下一版会更猛。'
+          ],
+          loop: [
+            '狂战士：今天 {today} 次提交，还在循环里——推了吗？没推就是摸鱼！',
+            '狂战士：连击 {streak} 天，别断！断了就重开。',
+            '狂战士：Flow 状态在线，继续冲！'
+          ]
+        };
+        function npcLine(theme) {
+          var arr = NPC_LINES[theme] || NPC_LINES.mirror;
+          var t = arr[Math.floor(Math.random() * arr.length)];
+          var todayStr = new Date().toISOString().split('T')[0];
+          var today = (state.dayMap && state.dayMap[todayStr]) || 0;
+          return t
+            .replace('{commits}', state.totalCommits || 0)
+            .replace('{repos}', (state.repos && state.repos.length) || 0)
+            .replace('{stars}', state.totalStars || 0)
+            .replace('{streak}', state.streak || 0)
+            .replace('{today}', today);
+        }
+        function initNpcPersonas() {
+          var avatar = document.getElementById('hero-avatar');
+          var bubble = document.getElementById('npc-bubble');
+          function speak(theme) {
+            if (!bubble) return;
+            bubble.textContent = npcLine(theme);
+            bubble.classList.add('show');
+            clearTimeout(bubble._t);
+            bubble._t = setTimeout(function() { bubble.classList.remove('show'); }, 4000);
+          }
+          if (avatar) avatar.addEventListener('click', function(e) {
+            e.stopPropagation();
+            speak(document.documentElement.getAttribute('data-theme') || 'mirror');
+          });
+        }
+
+        // ---- Feature 3: State Lens (three real-data views) ----
+        function initStateLens() {
+          var tabs = document.querySelectorAll('.state-lens-tab');
+          tabs.forEach(function(btn) { btn.addEventListener('click', function() { showLens(btn.dataset.lens); }); });
+          window.addEventListener('themeChanged', function(e) {
+            var th = (e.detail && e.detail.theme) || document.documentElement.getAttribute('data-theme');
+            showLens(th);
+          });
+          function showLens(theme) {
+            tabs.forEach(function(b) { b.classList.toggle('active', b.dataset.lens === theme); });
+            ['mirror', 'version', 'loop'].forEach(function(t) {
+              var p = document.getElementById('lens-' + t);
+              if (p) p.hidden = (t !== theme);
+            });
+          }
+          window.addEventListener('ghDataReady', function() { renderLens(); });
+          renderLens();
+          fetchEventsForLens();
+        }
+        function renderLens() {
+          renderMirrorLens();
+          renderVersionLens();
+          renderLoopLens();
+        }
+        function renderMirrorLens() {
+          var heat = document.getElementById('lens-heatmap');
+          if (heat) {
+            var days = [];
+            var today = new Date();
+            for (var i = 118; i >= 0; i--) { var d = new Date(today.getTime() - i * 86400000); days.push(d.toISOString().split('T')[0]); }
+            var max = 1;
+            days.forEach(function(k) { var v = (state.dayMap && state.dayMap[k]) || 0; if (v > max) max = v; });
+            var html = '';
+            days.forEach(function(k) {
+              var v = (state.dayMap && state.dayMap[k]) || 0;
+              var lvl = v === 0 ? 0 : Math.ceil(v / max * 4);
+              html += '<div class="hm-cell hm-' + lvl + '" title="' + k + ': ' + v + ' commits"></div>';
+            });
+            heat.innerHTML = html;
+          }
+          var langEl = document.getElementById('lens-langs');
+          if (langEl) {
+            var langs = state.langSet || {};
+            var entries = Object.keys(langs).map(function(k) { return [k, langs[k]]; }).sort(function(a, b) { return b[1] - a[1]; });
+            if (entries.length) {
+              var maxL = entries[0][1];
+              langEl.innerHTML = entries.slice(0, 8).map(function(e) {
+                var pct = Math.round(e[1] / maxL * 100);
+                return '<div class="lang-row"><span class="lang-name">' + e[0] + '</span><div class="lang-bar"><div class="lang-fill" style="width:' + pct + '%"></div></div><span class="lang-val">' + e[1] + '</span></div>';
+              }).join('');
+            } else {
+              langEl.innerHTML = '<p class="lens-empty">数据加载中…（需要网络访问 GitHub API）</p>';
+            }
+          }
+        }
+        function renderVersionLens() {
+          var el = document.getElementById('lens-growth');
+          if (!el) return;
+          var repos = state.repos || [];
+          if (!repos.length) { el.innerHTML = '<p class="lens-empty">数据加载中…</p>'; return; }
+          var byMonth = {};
+          repos.forEach(function(r) { var m = (r.created_at || '').slice(0, 7); if (m) byMonth[m] = (byMonth[m] || 0) + 1; });
+          var months = Object.keys(byMonth).sort();
+          var cum = 0; var pts = [];
+          months.forEach(function(m) { cum += byMonth[m]; pts.push(cum); });
+          var maxV = cum || 1; var w = 100, h = 60;
+          var path = pts.map(function(v, i) {
+            var x = months.length > 1 ? (i / (months.length - 1)) * w : 0;
+            var y = h - (v / maxV) * h;
+            return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+          }).join(' ');
+          el.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="growth-svg"><path d="' + path + '" fill="none" stroke="' + getAccent() + '" stroke-width="1.5"/></svg>' +
+            '<p class="lens-note">从 ' + months[0] + ' 到 ' + months[months.length - 1] + ' · 累计 ' + cum + ' 个仓库</p>';
+        }
+        function renderLoopLens() {
+          var el = document.getElementById('lens-activity');
+          if (!el) return;
+          if (state._events && state._events.length) {
+            el.innerHTML = state._events.slice(0, 12).map(function(ev) {
+              var act = (ev.type || '').replace('Event', '');
+              var repo = ev.repo ? ev.repo.name : '';
+              var when = formatDate(ev.created_at);
+              return '<div class="act-row"><span class="act-type">' + act + '</span><span class="act-repo">' + repo + '</span><span class="act-when">' + when + '</span></div>';
+            }).join('');
+          } else {
+            el.innerHTML = '<p class="lens-empty">活动流加载中…（将从 GitHub events API 拉取）</p>';
+          }
+        }
+        function fetchEventsForLens() {
+          ghFetch(GITHUB_API + '/users/' + USERNAME + '/events/public').then(function(events) {
+            if (Array.isArray(events)) { state._events = events; renderLoopLens(); }
+          });
+        }
+
+        // ---- Feature 2: Release timeline + real Patch Notes ----
+        function initReleaseTimeline() {
+          var input = document.getElementById('repo-input');
+          var btn = document.getElementById('repo-load');
+          var timeline = document.getElementById('release-timeline');
+          function load(repo) {
+            if (timeline) timeline.innerHTML = '<p class="lens-empty">加载中…</p>';
+            ghFetch(GITHUB_API + '/repos/' + repo + '/releases?per_page=12').then(function(rels) {
+              if (!Array.isArray(rels) || !rels.length) {
+                if (timeline) timeline.innerHTML = '<p class="lens-empty">该仓库暂无 Release，保留写死的 Patch Notes。</p>';
+                return;
+              }
+              if (timeline) {
+                timeline.innerHTML = rels.map(function(r, i) {
+                  var date = (r.published_at || '').slice(0, 10);
+                  var body = (r.body || '(无说明)').replace(/</g, '&lt;').slice(0, 400);
+                  return '<div class="tl-item' + (i === 0 ? ' tl-latest' : '') + '"><div class="tl-dot"></div><div class="tl-card"><div class="tl-head"><span class="tl-ver">' + (r.tag_name || r.name || 'v?') + '</span><span class="tl-date">' + date + '</span></div><div class="tl-body">' + body + '</div></div></div>';
+                }).join('');
+              }
+              var cl = document.getElementById('changelog');
+              if (cl) {
+                cl.innerHTML = rels.slice(0, 4).map(function(r) {
+                  var date = (r.published_at || '').slice(0, 7);
+                  var lines = (r.body || '').split('\n').filter(function(l) { return l.trim(); }).slice(0, 5).map(function(l) {
+                    return '<li class="changelog-item"><span class="change-badge change-add">●</span><span>' + l.replace(/</g, '&lt;').slice(0, 120) + '</span></li>';
+                  }).join('');
+                  return '<div class="changelog-entry"><div class="changelog-header"><span class="changelog-version">' + (r.tag_name || r.name) + '</span><span class="changelog-date">' + date + '</span></div><ul class="changelog-list">' + (lines || '<li class="changelog-item"><span>无说明</span></li>') + '</ul></div>';
+                }).join('');
+              }
+            });
+          }
+          if (btn) btn.addEventListener('click', function() { if (input && input.value) load(input.value.trim()); });
+          if (input && input.value) load(input.value.trim());
+        }
+
+        // ---- Feature 9: Achievements (bound to real events) ----
+        var ACHIEVEMENTS = [
+          { id: 'first_pr', name: '初代 PR', icon: '🔀', desc: '合并第一个 Pull Request' },
+          { id: 'big_day', name: '爆发日', icon: '💥', desc: '单日 10+ commit' },
+          { id: 'centurion', name: '百星', icon: '⭐', desc: '累计 100 star' },
+          { id: 'streak30', name: '30 天连击', icon: '🔥', desc: '连续 30 天 push' },
+          { id: 'first_issue', name: '首杀 Issue', icon: '🐛', desc: '关闭第一个 issue' }
+        ];
+        function initAchievements() {
+          var wall = document.getElementById('badge-wall');
+          if (!wall) return;
+          function render(unlocked) {
+            wall.innerHTML = ACHIEVEMENTS.map(function(a) {
+              var on = unlocked[a.id];
+              return '<div class="badge' + (on ? ' badge-on' : '') + '" title="' + a.desc + '"><div class="badge-icon">' + a.icon + '</div><div class="badge-name">' + a.name + '</div><div class="badge-desc">' + a.desc + '</div></div>';
+            }).join('');
+          }
+          render({});
+          ghFetch(GITHUB_API + '/users/' + USERNAME + '/events/public').then(function(events) {
+            var unlocked = {};
+            if (Array.isArray(events)) {
+              state._events = state._events || events;
+              var dayCommits = {};
+              events.forEach(function(ev) {
+                if (ev.type === 'PullRequestEvent' && ev.payload && ev.payload.action === 'closed' && ev.payload.pull_request && ev.payload.pull_request.merged) unlocked.first_pr = true;
+                if (ev.type === 'IssuesEvent' && ev.payload && ev.payload.action === 'closed') unlocked.first_issue = true;
+                if (ev.type === 'PushEvent' && ev.payload && ev.payload.commits) {
+                  var d = (ev.created_at || '').slice(0, 10);
+                  dayCommits[d] = (dayCommits[d] || 0) + (ev.payload.commits.length || 0);
+                }
+              });
+              Object.keys(dayCommits).forEach(function(d) { if (dayCommits[d] >= 10) unlocked.big_day = true; });
+            }
+            if (state.totalStars >= 100) unlocked.centurion = true;
+            if (state.streak >= 30) unlocked.streak30 = true;
+            render(unlocked);
+            Object.keys(unlocked).forEach(function(id) {
+              if (!localStorage.getItem('gh_ach_' + id)) {
+                try { localStorage.setItem('gh_ach_' + id, '1'); } catch (e) {}
+                var a = ACHIEVEMENTS.filter(function(x) { return x.id === id; })[0];
+                if (a) showToast('🏆 成就解锁：' + a.name);
+              }
+            });
+          });
+        }
+        function showToast(msg) {
+          var t = document.createElement('div');
+          t.className = 'fight-toast';
+          t.textContent = msg;
+          document.body.appendChild(t);
+          setTimeout(function() { t.classList.add('show'); }, 50);
+          setTimeout(function() { t.classList.remove('show'); setTimeout(function() { t.remove(); }, 400); }, 3500);
+        }
+
+        // ---- Feature 5: Dynamic share card (Canvas OG image) ----
+        function initShareCard() {
+          var btn = document.getElementById('btn-share');
+          var modal = document.getElementById('share-modal');
+          var canvas = document.getElementById('share-canvas');
+          var dl = document.getElementById('share-download');
+          var close = document.getElementById('share-close');
+          if (!btn || !modal) return;
+          function openM() { modal.classList.add('open'); drawShareCard(canvas); }
+          function closeM() { modal.classList.remove('open'); }
+          btn.addEventListener('click', function(e) { e.preventDefault(); openM(); });
+          if (close) close.addEventListener('click', closeM);
+          modal.addEventListener('click', function(e) { if (e.target === modal) closeM(); });
+          if (dl) dl.addEventListener('click', function() {
+            var link = document.createElement('a');
+            link.download = 'fight-1-share.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          });
+        }
+        function drawShareCard(canvas) {
+          if (!canvas) return;
+          var ctx = canvas.getContext('2d');
+          var W = 600, H = 315;
+          canvas.width = W; canvas.height = H;
+          ctx.fillStyle = '#0b0b0f'; ctx.fillRect(0, 0, W, H);
+          ctx.strokeStyle = getAccent(); ctx.lineWidth = 4; ctx.strokeRect(8, 8, W - 16, H - 16);
+          function finish() {
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 34px Inter, Arial, sans-serif';
+            ctx.fillText((state.user && state.user.login) || USERNAME, 150, 120);
+            ctx.fillStyle = getAccent(); ctx.font = '600 16px Inter, Arial, sans-serif';
+            ctx.fillText('Tri-State Self · Me against Me', 150, 150);
+            ctx.fillStyle = '#cbd5e1'; ctx.font = '15px Inter, Arial, sans-serif';
+            ctx.fillText('本周贡献 ' + ((state.dayMap && Object.keys(state.dayMap).length) || 0) + ' 天 · ⭐ ' + (state.totalStars || 0) + ' · 🔥 ' + (state.streak || 0) + ' 天连击', 150, 185);
+            ctx.fillStyle = '#94a3b8'; ctx.font = '13px JetBrains Mono, monospace';
+            ctx.fillText('fight-1.github.io', 150, 215);
+            try {
+              var og = document.querySelector('meta[property="og:image"]');
+              if (!og) { og = document.createElement('meta'); og.setAttribute('property', 'og:image'); document.head.appendChild(og); }
+              og.setAttribute('content', canvas.toDataURL('image/png'));
+            } catch (e) {}
+          }
+          var img = document.getElementById('hero-avatar');
+          if (img && img.src && img.src.indexOf('data:') !== 0) {
+            var a = new Image();
+            a.crossOrigin = 'anonymous';
+            a.onload = function() { try { ctx.save(); ctx.beginPath(); ctx.arc(70, 110, 40, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(a, 30, 70, 80, 80); ctx.restore(); } catch (e) {} finish(); };
+            a.onerror = finish;
+            a.src = img.src;
+          } else { finish(); }
+        }
+
+        // ---- Feature 6: Save file export ----
+        function initSaveFile() {
+          var btn = document.getElementById('btn-save');
+          if (!btn) return;
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var snapshot = {
+              username: (state.user && state.user.login) || USERNAME,
+              savedAt: new Date().toISOString(),
+              totalStars: state.totalStars,
+              totalCommits: state.totalCommits,
+              activeDays: state.activeDays,
+              streak: state.streak,
+              publicRepos: state.user ? state.user.public_repos : null,
+              followers: state.user ? state.user.followers : null,
+              languages: state.langSet,
+              repos: (state.repos || []).slice(0, 30).map(function(r) { return { name: r.name, stars: r.stargazers_count, lang: r.language, pushed: r.pushed_at }; }),
+              achievements: ACHIEVEMENTS.map(function(a) { return a.id; })
+            };
+            var blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = 'fight-1.save.json'; a.click();
+            URL.revokeObjectURL(url);
+            showToast('💾 已导出 fight-1.save.json');
+          });
+        }
+
+        // =========================================
         // Init
         // =========================================
         setInitialState();
@@ -1117,6 +1707,17 @@ const profile = {
         initCelebrationEasterEgg();
         initColorPanel();
         updateThemeLabel();
+
+        // New features (2026-09-07)
+        initMouseTrail();
+        initHeroGlitch();
+        initChallengerCounter();
+        initNpcPersonas();
+        initStateLens();
+        initReleaseTimeline();
+        initShareCard();
+        initSaveFile();
+        initAchievements();
 
         // Show the offline fallback avatar immediately so it's never blank;
         // fetchProfileData() upgrades it to the real GitHub avatar when available.
