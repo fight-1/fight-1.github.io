@@ -1,0 +1,33 @@
+name: Contribution Snake
+
+on:
+  schedule: [{ cron: '0 1 * * 0' }]  # Weekly on Sunday 01:00 UTC, after metrics
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate contribution snake
+        uses: Platane/snk@v3
+        with:
+          github_user_name: fight-1
+          outputs: |
+            github-contribution-grid-snake.svg
+            github-contribution-grid-snake-dark.svg?palette=github-dark
+            github-contribution-grid-snake-light.svg?palette=github-light
+
+      - name: Commit snake to repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: github-contribution-grid-snake*.svg
+          commit_message: "🐍 Update contribution snake [skip ci]"
+          push_options: --force
